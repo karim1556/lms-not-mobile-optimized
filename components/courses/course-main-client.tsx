@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, LayoutDashboard } from 'lucide-react';
+import ExternalVideoPlayer from '@/components/ui/external-video-player';
 
 type LessonType = 'lesson' | 'quiz' | 'assignment' | 'video' | 'document' | 'video_file';
 interface Lesson { id: string; title: string; description?: string; type?: LessonType; duration?: number; completed?: boolean; video_url?: string; file_url?: string; attachment_url?: string }
@@ -254,6 +255,8 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
 
   // Map of lessonId -> resolved absolute playable URL (stream URL or signed URL)
   const [resolvedVideoSrc, setResolvedVideoSrc] = useState<Record<string, string>>({});
+  // Map of lessonId -> directUrl resolved from external embed pages (so we can use <video> instead of iframe)
+  const [externalDirectSrc, setExternalDirectSrc] = useState<Record<string, string | null>>({});
 
   // When selectedLesson changes, if it has a relative storage path (courseId/file) try to request
   // a signed token and set a streaming URL. This makes the component resilient when server-side
@@ -346,6 +349,34 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
 
   // Build the main preview content once to avoid complex nested ternaries and TypeScript narrowing
   const mainContent = (() => {
+    // If lesson has raw HTML content (iframe/embed), render it directly.
+    // Normalize common iframe attributes so it fills the player canvas.
+    try {
+      const rawContent = (selectedLesson as any)?.content || '';
+        if (rawContent && /<iframe[\s\S]*?>[\s\S]*?<\/iframe>|<iframe[\s\S]*?\/>/i.test(rawContent)) {
+        const normalize = (html: string) => {
+          // Replace width/height attributes and add responsive styles
+          let out = html.replace(/width=("|')?\d+\/?(px)?(\1)?/gi, 'width="100%"');
+          out = out.replace(/height=("|')?\d+\/?(px)?(\1)?/gi, 'height="100%"');
+          // rewrite external embed src to our proxied HTML endpoint so it can be framed
+          out = out.replace(/src=("|')?(http:\/\/216\.48\.182\.5:5000\/api\/videos\/embed\/([0-9a-fA-F\-]+))(\1?)/gi, (m, q, url, id) => {
+            return `src="/api/video-proxy/html/${id}"`;
+          });
+          // ensure style includes width/height 100% and no border
+          out = out.replace(/<iframe/gi, '<iframe style="width:100%;height:100%;border:0;" ');
+          return out;
+        };
+
+        const safeHtml = normalize(String(rawContent));
+        return (
+          <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full" style={{ height: '100%' }}>
+            <div className="w-full h-full" style={{ minHeight: '520px' }} dangerouslySetInnerHTML={{ __html: safeHtml }} />
+          </div>
+        );
+      }
+    } catch (e) {
+      // ignore and continue to other rendering paths
+    }
     // Document or Assignment preview should take precedence over raw video file rendering
     // Also treat lessons whose `video_url` points to a PDF as documents so they render in an iframe.
     const isPdfUrl = (() => {
@@ -429,7 +460,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                   const embedUrl = vid ? `https://www.youtube.com/embed/${vid}` : urlStr;
                   return (
                     <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
-                      <div className="w-full h-[420px] sm:h-[520px] md:h-[620px] lg:h-[760px] xl:h-[820px]">
+                      <div className="w-full" style={{ width: '100%', aspectRatio: '16/9', maxHeight: '80vh' }}>
                         <iframe className="w-full h-full" src={embedUrl} title={selectedLesson.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
                       </div>
                     </div>
@@ -437,7 +468,11 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                 }
 
                 if (isVideoFile) {
-                  return <video className="w-full h-full min-h-[400px] md:min-h-[500px] object-cover" controls src={urlStr} />;
+                  return (
+                    <div className="w-full h-full min-h-[400px] md:min-h-[500px]">
+                      <ExternalVideoPlayer src={urlStr} />
+                    </div>
+                  );
                 }
 
                 return (
@@ -487,7 +522,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
   // If not a document/assignment, but there's a video_url, show the player
   if (selectedLesson.video_url) {
       return (
-        <div className="aspect-video bg-black rounded-2xl overflow-hidden w-full max-w-full">
+        <div className="bg-black rounded-2xl overflow-hidden w-full max-w-full">
           {(() => {
             const urlStr = (resolvedVideoSrc[String(selectedLesson.id)] as string) || (selectedLesson.video_url as string);
             if (urlStr && !/^https?:\/\//i.test(urlStr) && !/^\/?api\//i.test(urlStr) && !(typeof window !== 'undefined' && urlStr.startsWith(window.location.origin))) {
@@ -513,12 +548,12 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
               };
 
               const embedUrl = getYouTubeEmbed(url);
-              // If this URL points to the external player embed endpoint, render it inside an iframe
+              // If this URL points to the external player embed endpoint, try to resolve a direct stream URL
               const isExternalPlayerEmbed = /\/api\/videos\/embed\//i.test(urlStr) || urlStr.includes('216.48.182.5');
               if (embedUrl) {
                 return (
                   <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
-                    <div className="w-full h-[420px] sm:h-[520px] md:h-[620px] lg:h-[760px] xl:h-[820px]">
+                    <div className="w-full" style={{ width: '100%', aspectRatio: '16/9', maxHeight: '80vh' }}>
                       <iframe
                         className="w-full h-full"
                         src={embedUrl}
@@ -530,14 +565,50 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                   </div>
                 );
               }
-              // If it's an external player embed page, render in iframe (the embed endpoint serves a playable page)
+              // If it's an external player embed page, attempt to fetch a direct stream URL
               if (isExternalPlayerEmbed) {
+                // Extract the embed id from the path (last segment)
+                let id = urlStr.split('/').filter(Boolean).pop() || '';
+                const cached = externalDirectSrc[String(selectedLesson.id)];
+                if (!cached) {
+                  // resolve via our proxy API
+                  (async () => {
+                    try {
+                      const apiRes = await fetch(`/api/video-proxy/embed/${encodeURIComponent(id)}`);
+                      if (!apiRes.ok) return setExternalDirectSrc(prev => ({ ...prev, [String(selectedLesson.id)]: null }));
+                      const body = await apiRes.json();
+                      setExternalDirectSrc(prev => ({ ...prev, [String(selectedLesson.id)]: body.directUrl || null }));
+                    } catch (e) {
+                      setExternalDirectSrc(prev => ({ ...prev, [String(selectedLesson.id)]: null }));
+                    }
+                  })();
+                  // while resolving, show a preparing message
+                  return (
+                    <div className="flex items-center justify-center h-[60vh] text-white">Preparing video…</div>
+                  );
+                }
+
+                // If proxy returned a direct URL, use native <video> to allow full-bleed sizing
+                if (cached) {
+                  return (
+                    <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
+                      <div className="w-full" style={{ width: '100%', aspectRatio: '16/9', maxHeight: '80vh' }}>
+                        <ExternalVideoPlayer src={cached} />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Fallback to iframe when no direct URL available. Use our proxied HTML endpoint
+                // so the embed can be framed even if the original server sets X-Frame-Options.
+                const embedId = urlStr.split('/').filter(Boolean).pop() || '';
+                const proxiedSrc = `/api/video-proxy/html/${encodeURIComponent(embedId)}`;
                 return (
                   <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
-                    <div className="w-full h-[420px] sm:h-[520px] md:h-[620px] lg:h-[760px] xl:h-[820px]">
+                    <div className="w-full" style={{ width: '100%', aspectRatio: '16/9', maxHeight: '80vh' }}>
                       <iframe
                         className="w-full h-full"
-                        src={urlStr}
+                        src={proxiedSrc}
                         title={selectedLesson.title}
                         allow="autoplay; encrypted-media; fullscreen"
                         allowFullScreen
@@ -548,10 +619,18 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
               }
 
               // Not a YouTube link or external embed — treat as a normal video file or signed URL
-              return <video className="w-full h-full object-cover" controls src={urlStr} />;
+              return (
+                <div className="w-full h-full">
+                  <ExternalVideoPlayer src={urlStr} />
+                </div>
+              );
             } catch (e) {
               console.warn('Invalid video URL for lesson', selectedLesson.id, selectedLesson.video_url, e);
-              return <video className="w-full h-full object-cover" controls src={String(selectedLesson.video_url)} />;
+              return (
+                <div className="w-full h-full">
+                  <ExternalVideoPlayer src={String(selectedLesson.video_url)} />
+                </div>
+              );
             }
           })()}
         </div>
@@ -801,7 +880,11 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                   }
 
                   if (isVideoFile) {
-                    return <video className="w-full h-full object-contain bg-black" controls src={urlStr} />;
+                    return (
+                      <div className="w-full h-full">
+                        <ExternalVideoPlayer src={urlStr} />
+                      </div>
+                    );
                   }
 
                   // Fallback: render in iframe or link out
