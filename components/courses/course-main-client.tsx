@@ -513,6 +513,8 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
               };
 
               const embedUrl = getYouTubeEmbed(url);
+              // If this URL points to the external player embed endpoint, render it inside an iframe
+              const isExternalPlayerEmbed = /\/api\/videos\/embed\//i.test(urlStr) || urlStr.includes('216.48.182.5');
               if (embedUrl) {
                 return (
                   <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
@@ -528,7 +530,24 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                   </div>
                 );
               }
-              // Not a YouTube link — treat as a normal video file or signed URL
+              // If it's an external player embed page, render in iframe (the embed endpoint serves a playable page)
+              if (isExternalPlayerEmbed) {
+                return (
+                  <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
+                    <div className="w-full h-[420px] sm:h-[520px] md:h-[620px] lg:h-[760px] xl:h-[820px]">
+                      <iframe
+                        className="w-full h-full"
+                        src={urlStr}
+                        title={selectedLesson.title}
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
+              // Not a YouTube link or external embed — treat as a normal video file or signed URL
               return <video className="w-full h-full object-cover" controls src={urlStr} />;
             } catch (e) {
               console.warn('Invalid video URL for lesson', selectedLesson.id, selectedLesson.video_url, e);
@@ -592,9 +611,21 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                 {inferDisplayLabel(selectedLesson)}
               </span>
               <h2 className="text-lg md:text-xl font-bold text-gray-900 truncate">{selectedLesson.title}</h2>
-              {selectedLesson.description && (
-                <p className="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">{selectedLesson.description}</p>
-              )}
+              {selectedLesson.description && (() => {
+                try {
+                  const desc = String(selectedLesson.description || '');
+                  const isEmbed = /\/api\/videos\/embed\//i.test(desc) || desc.includes('216.48.182.5');
+                  const isSameAsVideo = String(selectedLesson.video_url || '').trim() === desc.trim();
+                  if (isEmbed || isSameAsVideo) return null;
+                  return (
+                    <p className="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">{selectedLesson.description}</p>
+                  );
+                } catch (e) {
+                  return (
+                    <p className="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">{selectedLesson.description}</p>
+                  );
+                }
+              })()}
             </div>
 
             {/* Fullscreen toggle - opens the existing fullscreen overlay */}

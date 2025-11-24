@@ -75,6 +75,30 @@ export function AddLessonModal({ isOpen, onClose, onAdd, onEdit, lessonToEdit, s
     }
   }, [lessonToEdit, isOpen]);
 
+  // If user selects Vimeo and pastes a Vimeo URL, convert it to the external
+  // player embed URL. This is a simple heuristic that takes the last path
+  // segment of the provided Vimeo link and appends it to the player embed path.
+  // If the content already looks like the embed URL, do nothing.
+  useEffect(() => {
+    try {
+      if (lessonType !== 'vimeo' || !content) return;
+
+      const alreadyEmbed = /\/api\/videos\/embed\//i.test(content) || content.includes('216.48.182.5');
+      if (alreadyEmbed) return;
+
+      // Detect common Vimeo URL patterns and extract the id (last path segment)
+      const vimeoMatch = content.match(/vimeo\.com\/(?:video\/)?([0-9a-zA-Z\-_.]+)/i);
+      if (vimeoMatch && vimeoMatch[1]) {
+        const videoId = vimeoMatch[1];
+        const embedUrl = `http://216.48.182.5:5000/api/videos/embed/${videoId}`;
+        setContent(embedUrl);
+      }
+    } catch (e) {
+      // ignore parsing failures
+      console.error('Error converting Vimeo URL to embed:', e);
+    }
+  }, [content, lessonType]);
+
   const resetForm = () => {
     setStep(1);
     setIsLoading(false);
