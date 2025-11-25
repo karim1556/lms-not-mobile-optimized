@@ -82,17 +82,16 @@ export async function POST(request: NextRequest, { params }: { params: any }) {
     
     // Handle file upload if present
     if (file) {
-      console.log('[lessons route] received file:', file.name, 'size=', file.size)
+      // Received file upload
   // Optionally support local storage instead of Supabase based on env or form override
   const envLocal = process.env.MEDIA_USE_LOCAL === '1' || process.env.MEDIA_USE_LOCAL === 'true'
   const USE_LOCAL = forceLocal || envLocal
-      console.log('[lessons route] MEDIA_USE_LOCAL=', USE_LOCAL)
 
       const fileExt = (file.name || '').split('.').pop() || 'bin'
       const safeBase = Math.random().toString(36).substring(2)
       const safeName = `${safeBase}.${fileExt}`
 
-      if (USE_LOCAL) {
+          if (USE_LOCAL) {
         try {
           // determine course id from section
           const db = await getDb()
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest, { params }: { params: any }) {
           fs.writeFileSync(outPath, buffer)
           // store relative path so players can request tokens for it
           fileUrl = `${courseId}/${safeName}`
-          console.log('[lessons route] saved local file to', outPath)
+          // saved local file to outPath
         } catch (e) {
           console.error('Local file save failed', e)
           return NextResponse.json({ error: 'Failed to save file locally' }, { status: 500 })
@@ -126,7 +125,7 @@ export async function POST(request: NextRequest, { params }: { params: any }) {
           .from('course-files')
           .getPublicUrl(fileName);
         fileUrl = urlData.publicUrl;
-        console.log('[lessons route] uploaded to supabase path=', fileName)
+        // uploaded to supabase at fileName
       }
     }
 

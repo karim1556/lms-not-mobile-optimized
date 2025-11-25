@@ -48,7 +48,7 @@ export default function BatchesPage() {
   }, [])
 
   const handleView = (id: string) => {
-    console.log('View batch:', id)
+    // view batch: id
   }
 
   const handleEdit = (id: string) => {

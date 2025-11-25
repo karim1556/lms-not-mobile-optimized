@@ -181,7 +181,7 @@ export default function ParentRegistration() {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Registration data:", formData)
+      // Registration data processed
       // Redirect to success page or dashboard
     } catch (error) {
       console.error("Registration failed:", error)

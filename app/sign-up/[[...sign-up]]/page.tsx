@@ -64,7 +64,7 @@ export default function SignUp() {
         code,
       });
       if (completeSignUp.status !== "complete") {
-        console.log(JSON.stringify(completeSignUp, null, 2));
+        // signup incomplete - response available in `completeSignUp`
       }
 
       if (completeSignUp.status === "complete") {

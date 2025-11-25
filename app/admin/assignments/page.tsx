@@ -15,11 +15,11 @@ export default function AssignmentsPage() {
   const [assignments, setAssignments] = useState(mockAssignments)
 
   const handleView = (id: number) => {
-    console.log("View assignment:", id)
+    // view assignment: id
   }
 
   const handleEdit = (id: number) => {
-    console.log("Edit assignment:", id)
+    // edit assignment: id
   }
 
   const handleDelete = (id: number) => {

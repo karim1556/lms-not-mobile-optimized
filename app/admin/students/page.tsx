@@ -45,7 +45,7 @@ export default function StudentsPage() {
   }, [])
 
   const handleView = (id: string) => {
-    console.log("View student:", id)
+    // view student: id
   }
 
   const handleEdit = (id: string) => {

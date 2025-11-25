@@ -162,13 +162,10 @@ export default function StudentCoursePlaybackPage() {
               if (isAssignment && lacksDetails) {
                 // fetch assignment details from server endpoint
                 const aid = String(lesson.id);
-                try {
-                  console.log('student-page: fetching assignment details for', aid);
+                  try {
                   const aRes = await fetch(`/api/assignments/${encodeURIComponent(aid)}`, { cache: 'no-store' });
-                  console.log('student-page: assignment details response', aRes.status);
                   if (!aRes.ok) continue;
                   const a = await aRes.json();
-                  console.log('student-page: assignment details body', a);
                   if (!a) continue;
                   // Map common fields
                   if (a.description) lesson.description = a.description;
@@ -208,8 +205,7 @@ export default function StudentCoursePlaybackPage() {
               }
 
               if (path) {
-                try {
-                  console.log('student-page: requesting signed url for', path);
+                  try {
                   const res = await fetch('/api/course-files/signed-url', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -217,7 +213,6 @@ export default function StudentCoursePlaybackPage() {
                   });
                   if (!active) return;
                   const body = await res.json();
-                  console.log('student-page: signed-url response', res.status, body);
                   if (res.ok && body?.signedUrl) {
                     lesson.video_url = body.signedUrl;
                     changed = true;
@@ -238,8 +233,7 @@ export default function StudentCoursePlaybackPage() {
             // already a stream URL (`/api/...`) or other API path to avoid double-wrapping.
             if (!/^https?:\/\//i.test(urlCandidate) && /\/.+/.test(urlCandidate) && !/^\/?api\//i.test(urlCandidate)) {
               const protectedPath = urlCandidate.replace(/^\/+/, '');
-              try {
-                console.log('student-page: requesting media token for', protectedPath);
+                try {
                 const tRes = await fetch('/api/media/get-signed-token', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -247,7 +241,6 @@ export default function StudentCoursePlaybackPage() {
                 });
                 if (!active) return;
                 const tb = await tRes.json();
-                console.log('student-page: token response', tRes.status, tb);
                 if (tRes.ok && tb?.token) {
                   // Use an absolute URL so downstream code that calls `new URL()` won't throw.
                   const origin = typeof window !== 'undefined' ? window.location.origin : '';

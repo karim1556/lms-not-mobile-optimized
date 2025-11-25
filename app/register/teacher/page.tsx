@@ -204,7 +204,7 @@ export default function TeacherRegistration() {
     setIsSubmitting(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Teacher registration data:", formData)
+      // Teacher registration data processed
     } catch (error) {
       console.error("Registration failed:", error)
     } finally {

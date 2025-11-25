@@ -137,12 +137,9 @@ export default function TrainerCoursePlaybackPage() {
               if (isAssignment && lacksDetails) {
                 const aid = String(lesson.id);
                 try {
-                  console.log('trainer-page: fetching assignment details for', aid);
                   const aRes = await fetch(`/api/assignments/${encodeURIComponent(aid)}`, { cache: 'no-store' });
-                  console.log('trainer-page: assignment details response', aRes.status);
                   if (!aRes.ok) continue;
                   const a = await aRes.json();
-                  console.log('trainer-page: assignment details body', a);
                   if (!a) continue;
                   if (a.description) lesson.description = a.description;
                   if (a.instructions) lesson.description = lesson.description || a.instructions;
@@ -182,7 +179,6 @@ export default function TrainerCoursePlaybackPage() {
             if (!path) continue;
 
             try {
-              console.log('trainer-page: requesting signed url for', path);
               const res = await fetch('/api/course-files/signed-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -190,7 +186,6 @@ export default function TrainerCoursePlaybackPage() {
               });
               if (!active) return;
               const body = await res.json();
-              console.log('trainer-page: signed-url response', res.status, body);
               if (res.ok && body?.signedUrl) {
                 lesson.video_url = body.signedUrl;
                 changed = true;

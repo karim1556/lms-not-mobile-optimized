@@ -64,7 +64,7 @@ export default function CoordinatorsPage() {
   }, [/* re-run once on mount; schoolNameById not needed here */])
 
   const handleView = (id: string) => {
-    console.log("View coordinator:", id)
+    // view coordinator: id
   }
 
   const handleDelete = async (id: string) => {

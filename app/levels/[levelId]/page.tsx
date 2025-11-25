@@ -36,10 +36,9 @@ export default function LevelDetailsPage() {
   if (!Number.isFinite(levelId)) return <div className="p-6">Invalid level</div>;
 
   const copyLink = async () => {
-    try {
+      try {
       await navigator.clipboard.writeText(window.location.href);
-      // simple UX without external toasts
-      console.log('Link copied');
+      // simple UX without external toasts (silent)
     } catch {
       alert('Link copy failed');
     }

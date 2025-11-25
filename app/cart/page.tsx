@@ -17,7 +17,6 @@ export default function ShoppingCartPage() {
   const savings = originalTotal - subtotal
 
   const handleCheckout = () => {
-    console.log("Proceeding to checkout with items:", cartItems)
     // Implement actual checkout logic here (e.g., redirect to payment)
   }
 

@@ -77,7 +77,7 @@ export default function CoursesPage() {
   }
 
   const handleApplyFilters = () => {
-    console.log("Filters applied:", filters)
+    // filters applied
   }
 
   const handleAction = async (action: string, course: any) => {

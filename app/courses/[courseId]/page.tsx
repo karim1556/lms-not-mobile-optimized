@@ -619,10 +619,7 @@ export default function CoursePage({ params }: { params: { courseId: string } })
                       <Button
                         variant="ghost"
                         className="text-white h-20 w-20 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                        onClick={() => {
-                        console.log('Playing video from URL:', course.demo_video_url);
-                        setShowVideo(true);
-                      }}
+                        onClick={() => setShowVideo(true)}
                       >
                         <PlayCircle className="h-16 w-16" />
                       </Button>

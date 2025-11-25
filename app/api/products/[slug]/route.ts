@@ -186,7 +186,7 @@ export async function PUT(
       try { bySlugCache.delete(slug) } catch {}
       try { (global as any).bySlugCache?.delete(slug) } catch {}
 
-    console.log('[API] PUT saved product', saved?.slug || slug)
+    // saved product updated
     return NextResponse.json(saved)
   } catch (err: any) {
     console.error('[API] PUT /api/products/:slug error', err)

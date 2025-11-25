@@ -40,7 +40,7 @@ export default function EnrolHistoryPage() {
   }
 
   const handleView = (id: string) => {
-    console.log('View enrolment:', id)
+    // view enrolment: id
   }
 
   return (

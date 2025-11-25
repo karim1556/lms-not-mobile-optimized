@@ -81,7 +81,7 @@ export default function TrainersPage() {
   }, [selectedSchoolId])
 
   const handleView = (id: string) => {
-    console.log("View trainer:", id)
+    // view trainer: id
   }
 
   const handleEdit = (id: string) => {
