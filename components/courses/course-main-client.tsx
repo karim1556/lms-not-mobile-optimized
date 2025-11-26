@@ -269,7 +269,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
 
         // Otherwise assume it's a relative protected path like "<courseId>/<file>"
         const protectedPath = raw.replace(/^\/+/, '');
-        console.log('course-main: resolving protected path', protectedPath);
+        // resolving protected path (logs removed to avoid leaking paths/tokens)
         const res = await fetch('/api/media/get-signed-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -277,7 +277,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
         });
         if (!active) return;
         if (!res.ok) {
-          console.warn('course-main: token request failed', await res.text());
+          console.warn('course-main: token request failed');
           return;
         }
         const body = await res.json();
@@ -287,7 +287,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
         if (!active) return;
         setResolvedVideoSrc(prev => ({ ...prev, [String(selectedLesson.id)]: abs }));
       } catch (e) {
-        console.warn('course-main: failed to resolve protected video', e);
+        console.warn('course-main: failed to resolve protected video');
       }
     })();
     return () => { active = false };
@@ -476,8 +476,9 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                     <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg" href={urlStr} target="_blank" rel="noreferrer">Open Resource</a>
                   </div>
                 );
-              } catch (e) {
-                console.warn('Invalid resource URL for lesson', selectedLesson.id, selectedLesson.video_url, e);
+                } catch (e) {
+                // Invalid resource URL — avoid printing the raw URL to console
+                console.warn('Invalid resource URL for lesson', selectedLesson.id);
                 return (
                   <div className="p-4 md:p-8 text-center text-gray-700">
                     <p className="mb-4">Preview not available.</p>
@@ -620,7 +621,8 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
                 </div>
               );
             } catch (e) {
-              console.warn('Invalid video URL for lesson', selectedLesson.id, selectedLesson.video_url, e);
+              // Invalid video URL — don't log full URL or error object in browser console
+              console.warn('Invalid video URL for lesson', selectedLesson.id);
               return (
                 <div className="w-full h-full">
                   <ExternalVideoPlayer src={String(selectedLesson.video_url)} />

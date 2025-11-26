@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: 'aiskool',
   description: 'Aiskool - Learn Anything, Anywhere',
   generator: 'aiskool',
+  icons: {
+    icon: '/favicon.svg'
+  }
 }
 
 export default function RootLayout({
