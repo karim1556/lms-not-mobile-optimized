@@ -3,19 +3,26 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const targetOrigin = 'http://216.48.182.5:5000';
-    const target = `${targetOrigin}/api/videos/embed/${encodeURIComponent(id)}`;
+    const primaryOrigin = 'https://api.aiskool.com';
+    const fallbackOrigin = 'http://216.48.182.5:5000';
+    const endpoints = [
+      `${primaryOrigin}/api/videos/embed/${encodeURIComponent(id)}`,
+      `${fallbackOrigin}/api/videos/embed/${encodeURIComponent(id)}`
+    ];
 
-    let res;
-    try {
-      res = await fetch(target, { method: 'GET' });
-    } catch (err) {
-      console.error('video-proxy/html fetch error', err);
-      return new Response('Failed to fetch embed page', { status: 502 });
+    let res: Response | null = null;
+    let target = endpoints[0];
+    for (const candidate of endpoints) {
+      try {
+        const r = await fetch(candidate, { method: 'GET' });
+        if (r.ok) { res = r; target = candidate; break; }
+      } catch (err) {
+        // try next
+      }
     }
 
-    if (!res.ok) {
-      console.error('video-proxy/html non-ok', res.status);
+    if (!res) {
+      console.error('video-proxy/html: all fetch attempts failed');
       return new Response('Failed to fetch embed page', { status: 502 });
     }
 

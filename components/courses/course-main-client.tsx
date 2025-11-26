@@ -549,7 +549,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
 
               const embedUrl = getYouTubeEmbed(url);
               // If this URL points to the external player embed endpoint, try to resolve a direct stream URL
-              const isExternalPlayerEmbed = /\/api\/videos\/embed\//i.test(urlStr) || urlStr.includes('216.48.182.5');
+              const isExternalPlayerEmbed = /\/api\/videos\/embed\//i.test(urlStr) || /api\.aiskool\.com/i.test(urlStr) || urlStr.includes('216.48.182.5');
               if (embedUrl) {
                 return (
                   <div className="mb-6 rounded-2xl overflow-hidden bg-black w-full">
@@ -693,7 +693,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
               {selectedLesson.description && (() => {
                 try {
                   const desc = String(selectedLesson.description || '');
-                  const isEmbed = /\/api\/videos\/embed\//i.test(desc) || desc.includes('216.48.182.5');
+                  const isEmbed = /\/api\/videos\/embed\//i.test(desc) || /api\.aiskool\.com/i.test(desc) || desc.includes('216.48.182.5');
                   const isSameAsVideo = String(selectedLesson.video_url || '').trim() === desc.trim();
                   if (isEmbed || isSameAsVideo) return null;
                   return (

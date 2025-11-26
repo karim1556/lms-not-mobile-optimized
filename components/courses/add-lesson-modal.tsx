@@ -83,14 +83,14 @@ export function AddLessonModal({ isOpen, onClose, onAdd, onEdit, lessonToEdit, s
     try {
       if (lessonType !== 'vimeo' || !content) return;
 
-      const alreadyEmbed = /\/api\/videos\/embed\//i.test(content) || content.includes('216.48.182.5');
+      const alreadyEmbed = /\/api\/videos\/embed\//i.test(content) || /api\.aiskool\.com/i.test(content) || content.includes('216.48.182.5');
       if (alreadyEmbed) return;
 
       // Detect common Vimeo URL patterns and extract the id (last path segment)
       const vimeoMatch = content.match(/vimeo\.com\/(?:video\/)?([0-9a-zA-Z\-_.]+)/i);
-      if (vimeoMatch && vimeoMatch[1]) {
+        if (vimeoMatch && vimeoMatch[1]) {
         const videoId = vimeoMatch[1];
-        const embedUrl = `http://216.48.182.5:5000/api/videos/embed/${videoId}`;
+        const embedUrl = `https://api.aiskool.com/api/videos/embed/${videoId}`;
         setContent(embedUrl);
       }
     } catch (e) {

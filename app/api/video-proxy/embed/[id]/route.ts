@@ -3,19 +3,25 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    const target = `http://216.48.182.5:5000/api/videos/embed/${encodeURIComponent(id)}`;
+    const primary = `https://api.aiskool.com/api/videos/embed/${encodeURIComponent(id)}`;
+    const fallback = `http://216.48.182.5:5000/api/videos/embed/${encodeURIComponent(id)}`;
 
-    let res;
+    let res: Response | null = null;
+    let target = primary;
     try {
-      res = await fetch(target, { method: 'GET' });
-    } catch (fetchErr) {
-      console.error('video-proxy: fetch error', String(fetchErr));
-      // Return fallback so client can iframe the original embed page
-      return NextResponse.json({ directUrl: null, embedUrl: target });
+      res = await fetch(primary, { method: 'GET' });
+      if (!res.ok) throw new Error('non-ok');
+    } catch (err) {
+      try {
+        res = await fetch(fallback, { method: 'GET' });
+        target = fallback;
+      } catch (e) {
+        console.error('video-proxy: fetch error', String(e));
+        return NextResponse.json({ directUrl: null, embedUrl: primary });
+      }
     }
 
-    if (!res.ok) {
-      console.error('video-proxy: embed endpoint returned non-ok', res.status);
+    if (!res || !res.ok) {
       return NextResponse.json({ directUrl: null, embedUrl: target });
     }
 
