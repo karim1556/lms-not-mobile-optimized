@@ -59,6 +59,9 @@ export default function ExternalVideoPlayer({ src }: Props) {
           ref={ref}
           controls
           playsInline
+          controlsList="nodownload nofullscreen noremoteplayback"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
           preload="metadata"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', background: 'black', display: 'block' }}
         />

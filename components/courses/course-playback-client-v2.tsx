@@ -313,13 +313,7 @@ const AssignmentViewer = ({ lesson }: { lesson: Lesson }) => {
 
 const DocumentViewer = ({ lesson }: { lesson: Lesson }) => {
   useEffect(() => {
-    console.log('DocumentViewer mounted with lesson:', {
-      id: lesson.id,
-      title: lesson.title,
-      type: lesson.type, 
-      video_url: lesson.video_url || 'No URL',
-      content_length: lesson.content?.length || 0
-    });
+    // DocumentViewer mounted (logging removed to avoid leaking signed URLs)
   }, [lesson]);
 
   const fileUrl =
@@ -343,8 +337,6 @@ const DocumentViewer = ({ lesson }: { lesson: Lesson }) => {
   const isVideo = !!fileUrl && typeof fileUrl === 'string' && !isPdf;
 
   if (isVideo && fileUrl) {
-    console.log('Rendering video player with URL:', fileUrl);
-    
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
         <video 
@@ -353,31 +345,13 @@ const DocumentViewer = ({ lesson }: { lesson: Lesson }) => {
           autoPlay 
           className="w-full h-full object-contain"
           onError={(e) => {
-            console.error('Video error:', e);
-            console.error('Video error details:', {
-              networkState: e.currentTarget.networkState,
-              error: e.currentTarget.error,
-              readyState: e.currentTarget.readyState,
-              src: e.currentTarget.src
-            });
+            console.error('Video playback error', e);
           }}
-          onLoadedMetadata={(e) => {
-            console.log('Video metadata loaded:', {
-              duration: e.currentTarget.duration,
-              videoWidth: e.currentTarget.videoWidth,
-              videoHeight: e.currentTarget.videoHeight,
-              readyState: e.currentTarget.readyState
-            });
-          }}
-          onLoadStart={() => console.log('Video load started')}
-          onLoadedData={() => console.log('Video data loaded')}
-          onCanPlay={() => console.log('Video can play')}
-          onPlaying={() => console.log('Video started playing')}
         >
           <source 
             src={fileUrl} 
             type="video/mp4" 
-            onError={(e) => console.error('Source error:', e)}
+            onError={(e) => console.error('Video source error', e)}
           />
           Your browser does not support the video tag.
         </video>
@@ -387,8 +361,6 @@ const DocumentViewer = ({ lesson }: { lesson: Lesson }) => {
   
   // Handle PDF documents
   if (isPdf && fileUrl) {
-    console.log('Rendering PDF viewer with URL:', fileUrl);
-    
     return (
       <div className="w-full h-full flex flex-col">
         <div className="flex-1">

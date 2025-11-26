@@ -152,7 +152,6 @@ export default function CourseSidebarClient({ initialCurriculum, courseId, role 
                 <ul className="divide-y divide-gray-200">
                   {section.lessons.map((lesson, idx) => (
                     <li key={lesson.id} onClick={() => {
-                      console.log('sidebar: lesson clicked', lesson.id, section.id);
                       setSelectedLessonId(lesson.id);
                       window.dispatchEvent(new CustomEvent('lesson:selected', { detail: { lessonId: lesson.id, sectionId: section.id } }));
                     }} className={`flex items-center gap-4 px-4 py-3 cursor-pointer ${lesson.completed ? 'opacity-90' : ''} ${selectedLessonId === lesson.id ? 'bg-blue-50 rounded-md' : ''}`}>

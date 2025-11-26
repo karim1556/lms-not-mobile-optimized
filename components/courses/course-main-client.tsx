@@ -220,14 +220,12 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
   useEffect(() => {
     const onSelect = (ev: any) => {
       const { lessonId } = ev.detail || {};
-      console.log('main: lesson:selected received', lessonId);
       if (!lessonId) return;
       setSelectedLessonId(lessonId);
     };
 
     const onChange = (ev: any) => {
       const { lessonId, completed } = ev.detail || {};
-      console.log('main: lesson:completion event', ev.type, lessonId, completed);
       if (!lessonId) return;
       setCurriculum(prev => prev.map(s => ({ ...s, lessons: s.lessons.map(l => l.id === lessonId ? { ...l, completed } : l) } )));
     };
@@ -248,10 +246,7 @@ export default function CourseMainClient({ initialCurriculum, courseId, role = '
   const previousLesson = allLessons[currentIndex - 1];
   const nextLesson = allLessons[currentIndex + 1];
 
-  // Debug: log selected lesson for troubleshooting preview issues
-  useEffect(() => {
-    console.log('course-main: selectedLesson', selectedLesson);
-  }, [selectedLesson]);
+  // Intentionally silent in production — do not log selected lesson (may contain signed URLs)
 
   // Map of lessonId -> resolved absolute playable URL (stream URL or signed URL)
   const [resolvedVideoSrc, setResolvedVideoSrc] = useState<Record<string, string>>({});
