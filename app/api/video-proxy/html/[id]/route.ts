@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     let target = endpoints[0];
     for (const candidate of endpoints) {
       try {
-        const r = await fetch(candidate, { method: 'GET' });
+        const r = await fetchWithTimeout(candidate, { method: 'GET' }, 10000);
         if (r.ok) { res = r; target = candidate; break; }
       } catch (err) {
         // try next
@@ -31,6 +31,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Inject a <base> tag so relative URLs in the embed page resolve to the target origin
     try {
       if (/\<base[^>]*>/i.test(text) === false) {
+        const targetOrigin = new URL(target).origin;
         text = text.replace(/<head(.*?)>/i, (m) => `${m}<base href="${targetOrigin}/" />`);
       }
 

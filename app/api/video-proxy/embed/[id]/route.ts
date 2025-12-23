@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -9,11 +10,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
     let res: Response | null = null;
     let target = primary;
     try {
-      res = await fetch(primary, { method: 'GET' });
-      if (!res.ok) throw new Error('non-ok');
+      res = await fetchWithTimeout(primary, { method: 'GET' }, 10000);
+      if (!res || !res.ok) throw new Error('non-ok');
     } catch (err) {
       try {
-        res = await fetch(fallback, { method: 'GET' });
+        res = await fetchWithTimeout(fallback, { method: 'GET' }, 10000);
         target = fallback;
       } catch (e) {
         console.error('video-proxy: fetch error', String(e));

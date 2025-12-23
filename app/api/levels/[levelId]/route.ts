@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { ensureLevelsSchema } from "@/lib/levels-schema";
 import { supabase } from "@/lib/supabase";
+import '@/lib/fetchWithTimeout';
 
 export const dynamic = 'force-dynamic';
 

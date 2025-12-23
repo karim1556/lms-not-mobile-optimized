@@ -1,16 +1,18 @@
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
+
 const CLERK_API_BASE = process.env.CLERK_API_URL || 'https://api.clerk.com/v1';
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
 
 async function clerkFetch(path: string, init?: RequestInit) {
   if (!CLERK_SECRET_KEY) throw new Error('CLERK_SECRET_KEY not set');
-  const res = await fetch(`${CLERK_API_BASE}${path}`, {
+  const res = await fetchWithTimeout(`${CLERK_API_BASE}${path}`, {
     ...init,
     headers: {
       'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
       'Content-Type': 'application/json',
       ...(init?.headers || {}),
     },
-  });
+  }, 10000);
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
     throw new Error(`Clerk API ${path} -> ${res.status}: ${txt}`);

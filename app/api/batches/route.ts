@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import '@/lib/fetchWithTimeout';
 import { getDb, sql } from '@/lib/db';
 import { auth } from '@clerk/nextjs/server'
 

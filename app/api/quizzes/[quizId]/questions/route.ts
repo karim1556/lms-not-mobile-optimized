@@ -1,3 +1,4 @@
+import '@/lib/fetchWithTimeout'
 import { NextResponse } from 'next/server';
 import { getDb, sql } from '@/lib/db';
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { getDb, Database } from '@/lib/db'
 import { auth } from '@clerk/nextjs/server'
 
@@ -102,12 +103,12 @@ export async function GET(req: NextRequest) {
     // Build absolute URL from the current request to avoid relative URL issues in Node fetch
     const detailsUrl = new URL(`/api/courses/${courseId}/details`, req.url).toString()
     // Forward cookies to preserve auth/session in internal fetches on Vercel
-    const detailsRes: Response = await fetch(detailsUrl, {
+    const detailsRes: Response = await fetchWithTimeout(detailsUrl, {
       cache: 'no-store',
       headers: {
         cookie: req.headers.get('cookie') || '',
       },
-    })
+    }, 10000)
     if (!detailsRes.ok) {
       const txt = await detailsRes.text().catch(()=> '')
       return NextResponse.json({ error: 'Failed to load course details', step, info: txt?.slice(0,500) }, { status: 500 })

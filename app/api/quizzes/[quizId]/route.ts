@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import '@/lib/fetchWithTimeout';
 import { getDb } from '@/lib/db';
 
 interface QuizDetails {

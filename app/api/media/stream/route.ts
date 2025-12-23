@@ -1,5 +1,6 @@
 export const runtime = 'nodejs'
 
+import '@/lib/fetchWithTimeout'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
