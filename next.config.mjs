@@ -4,9 +4,8 @@ const require = createRequire(import.meta.url);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // `eslint` next config option is deprecated for CLI — keep ESLint config
+  // in separate tooling or use `next lint` flags. Remove deprecated key.
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -22,6 +21,9 @@ const nextConfig = {
       'node_modules/better-sqlite3/build/**/*'
     ],
   },
+  // Provide an explicit empty Turbopack config to allow Turbopack (Next 16+)
+  // to run while keeping the existing webpack customizations for fallback.
+  turbopack: {},
   // Add webpack configuration to handle SQLite in serverless
   webpack: (config, { isServer }) => {
     if (isServer) {

@@ -1,6 +1,5 @@
-// Email helper supporting SMTP (Mailtrap) first, with Resend fallback.
+// Email helper supporting SMTP (Mailtrap). Resend fallback removed.
 // SMTP envs: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
-// Resend envs: RESEND_API_KEY, RESEND_FROM
 
 export async function sendEmail(options: {
   to: string,
@@ -33,26 +32,9 @@ export async function sendEmail(options: {
     return { smtp: true, messageId: info.messageId }
   }
 
-  // Fallback to Resend HTTP API
-  const apiKey = process.env.RESEND_API_KEY
-  const from = options.from || process.env.RESEND_FROM || 'noreply@example.com'
-  if (!apiKey) {
-    console.warn('[email] No SMTP or RESEND configured. Would have sent email to', options.to, 'subject:', options.subject)
-    return { skipped: true } as const
-  }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from, to: [options.to], subject: options.subject, html: options.html, text: options.text }),
-  })
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '')
-    throw new Error(`Failed to send email: ${res.status} ${msg}`)
-  }
-  return await res.json()
+  // No SMTP configured — do not call any external email provider.
+  console.warn('[email] No SMTP configured. Would have sent email to', options.to, 'subject:', options.subject)
+  return { skipped: true } as const
 }
 
 export async function sendPasswordEmail(to: string, password: string, context?: { name?: string, appName?: string, loginUrl?: string }) {
