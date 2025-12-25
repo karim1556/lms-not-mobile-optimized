@@ -24,9 +24,19 @@ export default function LevelDetailsPage() {
         fetch(`/api/levels/${levelId}`),
         fetch(`/api/levels/${levelId}/courses`),
       ]);
-      const l = await lRes.json();
+      const parseJsonSafely = async (res: Response) => {
+        try {
+          const text = await res.text();
+          if (!text) return null;
+          return JSON.parse(text);
+        } catch (err) {
+          return null;
+        }
+      };
+
+      const l = await parseJsonSafely(lRes);
       setLevel(l?.error ? null : l);
-      const c = await cRes.json();
+      const c = await parseJsonSafely(cRes);
       setCourses(Array.isArray(c) ? c : []);
     })();
   }, [levelId]);

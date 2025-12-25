@@ -6,19 +6,23 @@ import '@/lib/fetchWithTimeout';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: NextRequest, { params }: { params: { levelId: string }}) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ levelId: string }> | { levelId: string }}) {
   const db = await getDb();
   await ensureLevelsSchema();
-  const id = Number(params.levelId);
-  const row = await db.get<any>("SELECT * FROM levels WHERE id = $1", [id]);
+  const p = await params as { levelId?: string };
+  const id = Number(p.levelId);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: 'Invalid level id' }, { status: 400 });
+  const row = await db.get<any>("SELECT * FROM levels WHERE id = $1", [Math.trunc(id)]);
   if (!row) return NextResponse.json({ error: 'Level not found' }, { status: 404 });
   return NextResponse.json(row);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { levelId: string }}) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ levelId: string }> | { levelId: string }}) {
   const db = await getDb();
   await ensureLevelsSchema();
-  const id = Number(params.levelId);
+  const p = await params as { levelId?: string };
+  const id = Number(p.levelId);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: 'Invalid level id' }, { status: 400 });
 
   const contentType = req.headers.get('content-type') || '';
   let name: string | undefined;
@@ -120,9 +124,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { levelId: s
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { levelId: string }}) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ levelId: string }> | { levelId: string }}) {
   const db = await getDb();
   await ensureLevelsSchema();
-  await db.run("DELETE FROM levels WHERE id = $1", [Number(params.levelId)]);
+  const p = await params as { levelId?: string };
+  const id = Number(p.levelId);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: 'Invalid level id' }, { status: 400 });
+  await db.run("DELETE FROM levels WHERE id = $1", [Math.trunc(id)]);
   return NextResponse.json({ success: true });
 }
