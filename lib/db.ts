@@ -58,19 +58,31 @@ const db: Database = {
   async get<T>(query: string, params: any[] = []): Promise<T | null> {
     if (dbInitError) throw dbInitError
     if (!_sqlInternal) throw new Error('Database client is not initialized.')
-    const rows = await withRetry(() => _sqlInternal!.unsafe(query, params))
+    const safeParams = params.map(p => p === undefined ? null : p)
+    if (params.some(p => p === undefined)) {
+      console.warn('[DB] Replacing undefined query parameter(s) with null for query:', query, safeParams)
+    }
+    const rows = await withRetry(() => _sqlInternal!.unsafe(query, safeParams))
     return (rows[0] as unknown as T) || null
   },
   async all<T>(query: string, params: any[] = []): Promise<T[]> {
     if (dbInitError) throw dbInitError
     if (!_sqlInternal) throw new Error('Database client is not initialized.')
-    const rows = await withRetry(() => _sqlInternal!.unsafe(query, params))
+    const safeParams = params.map(p => p === undefined ? null : p)
+    if (params.some(p => p === undefined)) {
+      console.warn('[DB] Replacing undefined query parameter(s) with null for query:', query, safeParams)
+    }
+    const rows = await withRetry(() => _sqlInternal!.unsafe(query, safeParams))
     return rows as unknown as T[]
   },
   async run(query: string, params: any[] = []): Promise<void> {
     if (dbInitError) throw dbInitError
     if (!_sqlInternal) throw new Error('Database client is not initialized.')
-    await withRetry(() => _sqlInternal!.unsafe(query, params))
+    const safeParams = params.map(p => p === undefined ? null : p)
+    if (params.some(p => p === undefined)) {
+      console.warn('[DB] Replacing undefined query parameter(s) with null for query:', query, safeParams)
+    }
+    await withRetry(() => _sqlInternal!.unsafe(query, safeParams))
   },
 };
 

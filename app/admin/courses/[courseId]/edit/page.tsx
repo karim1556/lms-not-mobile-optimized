@@ -27,7 +27,20 @@ export default function EditCoursePage() {
         try {
           const res = await fetch(`/api/courses/${courseId}`)
           if (res.ok) {
-            const data = await res.json()
+            let data = await res.json()
+            // If the basic course route returns null (course missing), try the details endpoint as a fallback
+            if (!data) {
+              console.warn(`Course ${courseId} not found at /api/courses. Trying /api/courses/${courseId}/details as fallback.`)
+              try {
+                const detailsRes = await fetch(`/api/courses/${courseId}/details`)
+                if (detailsRes.ok) {
+                  data = await detailsRes.json()
+                }
+              } catch (err) {
+                console.warn('Fallback fetch to details endpoint failed:', err)
+              }
+            }
+
             const cleanData = {
               ...data,
               title: data.title || '',
@@ -71,6 +84,8 @@ export default function EditCoursePage() {
     try {
       const formData = new FormData()
       Object.entries(courseData).forEach(([key, value]) => {
+        // Skip fields that are not columns on the courses table
+        if (key === 'curriculum') return;
         if (value === null || value === undefined) return;
 
         if (key === 'image') {
