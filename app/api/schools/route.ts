@@ -66,16 +66,45 @@ async function ensureTable() {
 // }
 export async function GET(req: NextRequest) {
   try {
-    // 1. Ensure the table exists
-    await ensureTable();
+    const { searchParams } = new URL(req.url)
+    if (searchParams.get('bypass') === '1') {
+      console.log('API: /api/schools bypass response')
+      return NextResponse.json([])
+    }
+    console.log('API: GET /api/schools called')
+    // 1. Ensure the table exists — run with timeout so DDL doesn't hang the request
+    console.log('API: /api/schools ensureTable start')
+    try {
+      await Promise.race([
+        ensureTable(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('ensureTable-timeout')), 5000)),
+      ])
+    } catch (et: any) {
+      console.error('API: ensureTable failed or timed out', et)
+      return NextResponse.json({ error: et?.message || 'ensureTable failed' }, { status: 500 })
+    }
+    console.log('API: /api/schools ensureTable done')
 
     // 2. Get a database connection
     const db = getDb();
 
     // 3. Fetch all schools, ordered by newest first
-    const rows = await db.all(
-      "SELECT * FROM schools ORDER BY created_at DESC"
-    );
+    const t0 = Date.now()
+    // add a server-side timeout so a stuck DB query doesn't hang the request
+    const QUERY_TIMEOUT_MS = 5000
+    let rows: any[] = []
+    try {
+      rows = await Promise.race([
+        db.all("SELECT * FROM schools ORDER BY created_at DESC"),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('db-timeout')), QUERY_TIMEOUT_MS)),
+      ]) as any[]
+    } catch (qerr: any) {
+      const tookErr = Date.now() - t0
+      console.error(`API: /api/schools query failed after ${tookErr}ms`, qerr)
+      return NextResponse.json({ error: qerr?.message || 'DB query failed or timed out' }, { status: qerr?.message === 'db-timeout' ? 504 : 500 })
+    }
+    const took = Date.now() - t0
+    console.log(`API: /api/schools fetched ${Array.isArray(rows) ? rows.length : 0} rows in ${took}ms`)
 
     // 4. Return all schools as JSON
     return NextResponse.json(rows);

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Grid, List, RefreshCw, MapPin, Users, Phone, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
+// Use plain <img> in this client page to avoid Next/Image runtime issues
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -34,6 +34,8 @@ export default function SchoolsPage() {
 
   const [schools, setSchools] = useState<UISchool[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [fetchStatus, setFetchStatus] = useState<string | null>(null)
 
   const typeOptions = useMemo(() => {
     const set = new Set<string>()
@@ -55,9 +57,26 @@ export default function SchoolsPage() {
 
   useEffect(() => {
     const load = async () => {
+      // enforce a client-side timeout so the UI doesn't hang indefinitely
+      const controller = new AbortController()
+      const timeoutMs = 8000
+      const id = setTimeout(() => controller.abort(), timeoutMs)
       try {
-        const res = await fetch("/api/schools", { cache: "no-store" })
-        const data = await res.json()
+        const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/schools`
+        console.log("Fetching schools from:", url)
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal })
+        clearTimeout(id)
+        console.log("Schools fetch status:", res.status, res.statusText)
+        setFetchStatus(`${res.status} ${res.statusText}`)
+        const data = await res.json().catch((e) => {
+          console.log("Failed to parse /api/schools JSON", e)
+          setFetchError(String(e))
+          return null
+        })
+        if (!res.ok) {
+          console.log("/api/schools returned error", data)
+          setFetchError(data?.error ? String(data.error) : `HTTP ${res.status}`)
+        }
         const mapped: UISchool[] = (Array.isArray(data) ? data : []).map((s: any) => ({
           id: s.id,
           name: s.name,
@@ -72,8 +91,14 @@ export default function SchoolsPage() {
           size: null,
         }))
         setSchools(mapped)
-      } catch (e) {
-        console.error("Failed to load schools", e)
+      } catch (e: any) {
+        clearTimeout(id)
+        console.log("Failed to load schools", e)
+        if (e?.name === 'AbortError') {
+          setFetchError(`Request timed out after ${timeoutMs}ms`)
+        } else {
+          setFetchError(String(e))
+        }
       } finally {
         setLoading(false)
       }
@@ -149,7 +174,11 @@ export default function SchoolsPage() {
           {/* Schools Grid */}
           <div className="lg:col-span-3">
             {loading ? (
-              <div className="text-center py-12 text-gray-500">Loading...</div>
+              <div className="text-center py-12 text-gray-500">
+                <div>Loading...</div>
+                {fetchStatus && <div className="mt-2 text-sm">Status: {fetchStatus}</div>}
+                {fetchError && <div className="mt-2 text-sm text-red-600">Error: {fetchError}</div>}
+              </div>
             ) : filteredSchools.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">No results found</p>
@@ -166,8 +195,8 @@ export default function SchoolsPage() {
                         <div
                           className={viewMode === "grid" ? "flex justify-center" : "md:col-span-1 flex justify-center"}
                         >
-                          <Image
-                            src={school.logo || "/placeholder.svg"}
+                          <img
+                            src={String(school.logo || "/placeholder.svg")}
                             alt={school.name}
                             width={200}
                             height={150}

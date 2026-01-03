@@ -14,9 +14,14 @@ let _sqlInternal: ReturnType<typeof postgres> | null = null;
 let dbInitError: Error | null = null;
 try {
     if (connectionString) {
+    // Determine SSL mode: prefer explicit env override, otherwise disable for localhost.
+    const sslOption: any = process.env.POSTGRES_SSL === 'require'
+      ? 'require'
+      : (connectionString && /(localhost|127\.0\.0\.1)/.test(connectionString) ? false : 'require')
+
     _sqlInternal = postgres(connectionString, {
       prepare: false,
-      ssl: 'require',
+      ssl: sslOption,
       max: 5,               // limit pool size to avoid local exhaustion
       idle_timeout: 20,     // seconds
       connect_timeout: 10,  // seconds

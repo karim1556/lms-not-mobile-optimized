@@ -12,6 +12,12 @@ const isCampCoordinatorRoute = createRouteMatcher(['/camp-coordinator(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   // Debug trace for routing in development
+  // In development, skip Clerk middleware for API routes to avoid external
+  // network delays from Clerk affecting local debugging of API endpoints.
+  if (process.env.NODE_ENV !== 'production' && req.nextUrl.pathname.startsWith('/api')) {
+    return NextResponse.next()
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const p = req.nextUrl.pathname
     const flags = {

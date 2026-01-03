@@ -26,12 +26,31 @@ export default function SchoolsPage() {
   const router = useRouter()
   const [schools, setSchools] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [fetchStatus, setFetchStatus] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
+      // enforce client-side timeout to avoid indefinite hang
+      const controller = new AbortController()
+      const timeoutMs = 8000
+      const id = setTimeout(() => controller.abort(), timeoutMs)
       try {
-        const res = await fetch("/api/schools", { cache: "no-store" })
-        const data = await res.json()
+        const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/schools`
+        console.log("Fetching admin schools from:", url)
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal })
+        clearTimeout(id)
+        console.log("Admin schools fetch status:", res.status, res.statusText)
+        setFetchStatus(`${res.status} ${res.statusText}`)
+        const data = await res.json().catch((e) => {
+          console.log("Failed to parse /api/schools JSON (admin)", e)
+          setFetchError(String(e))
+          return null
+        })
+        if (!res.ok) {
+          console.log("/api/schools returned error (admin)", data)
+          setFetchError(data?.error ? String(data.error) : `HTTP ${res.status}`)
+        }
         const mapped: Row[] = (Array.isArray(data) ? data : []).map((s: any) => ({
           id: s.id,
           logo: s.logo_url,
@@ -42,8 +61,14 @@ export default function SchoolsPage() {
           students: s.student_count ?? null,
         }))
         setSchools(mapped)
-      } catch (e) {
+      } catch (e: any) {
+        clearTimeout(id)
         console.error("Failed to load schools", e)
+        if (e?.name === 'AbortError') {
+          setFetchError(`Request timed out after ${timeoutMs}ms`)
+        } else {
+          setFetchError(String(e))
+        }
       } finally {
         setLoading(false)
       }
@@ -114,7 +139,11 @@ export default function SchoolsPage() {
                     <tbody>
                       {loading ? (
                         <tr>
-                          <td colSpan={8} className="py-6 text-center text-gray-500">Loading...</td>
+                          <td colSpan={8} className="py-6 text-center text-gray-500">
+                            <div>Loading...</div>
+                            {fetchStatus && <div className="mt-2 text-sm">Status: {fetchStatus}</div>}
+                            {fetchError && <div className="mt-2 text-sm text-red-600">Error: {fetchError}</div>}
+                          </td>
                         </tr>
                       ) : paginatedSchools.length === 0 ? (
                         <tr>
