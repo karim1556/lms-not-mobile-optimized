@@ -1,6 +1,7 @@
 import '@/lib/fetchWithTimeout'
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { runOnce } from '@/lib/runtime-migrations'
 import { supabase } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 // Edge-safe UUID generator: use Web Crypto when available, fallback to Math.random
@@ -72,18 +73,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([])
     }
     console.log('API: GET /api/schools called')
-    // 1. Ensure the table exists — run with timeout so DDL doesn't hang the request
-    console.log('API: /api/schools ensureTable start')
+    // 1. Ensure the table exists — run once per process (disabled in production by default)
+    console.log('API: /api/schools ensureTable start (guarded)')
     try {
+      const p = runOnce('ensureTable', ensureTable) || Promise.resolve()
       await Promise.race([
-        ensureTable(),
+        p,
         new Promise((_, rej) => setTimeout(() => rej(new Error('ensureTable-timeout')), 5000)),
       ])
     } catch (et: any) {
       console.error('API: ensureTable failed or timed out', et)
       return NextResponse.json({ error: et?.message || 'ensureTable failed' }, { status: 500 })
     }
-    console.log('API: /api/schools ensureTable done')
+    console.log('API: /api/schools ensureTable done (guarded)')
 
     // 2. Get a database connection
     const db = getDb();
@@ -117,7 +119,7 @@ export async function GET(req: NextRequest) {
 
 
 export async function POST(req: NextRequest) {
-  await ensureTable();
+  await runOnce('ensureTable', ensureTable)
   const db = getDb();
 
   try {
@@ -270,7 +272,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  await ensureTable();
+  await runOnce('ensureTable', ensureTable)
   const db = getDb();
   try {
     const { orgId } = await auth();

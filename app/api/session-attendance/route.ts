@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
@@ -31,7 +32,7 @@ async function getSchoolId(db:any, orgId:string) {
 
 export async function GET(req: NextRequest) {
   const db = getDb()
-  await ensureSchema(db)
+  await runOnce('ensureSchema', () => ensureSchema(db))
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('sessionId')
   const { orgId } = await auth()
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const db = getDb()
-  await ensureSchema(db)
+  await runOnce('ensureSchema', () => ensureSchema(db))
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'Organization not selected' }, { status: 401 })
   const schoolId = await getSchoolId(db, orgId)

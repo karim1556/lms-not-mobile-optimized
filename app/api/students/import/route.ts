@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 import { auth } from '@clerk/nextjs/server'
 import { generatePassword } from '@/lib/password'
 import { findUserByEmail, createUser, setUserPassword, addUserToOrganization, listOrganizationMemberships, updateOrganizationMembershipRole, inviteUserToOrganization } from '@/lib/clerk'
@@ -69,7 +70,7 @@ function parseCsv(text:string) {
 }
 
 export async function POST(req: NextRequest) {
-  const db = getDb(); await ensureSchema(db)
+  const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { orgId, userId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'Organization not selected' }, { status: 401 })
   const schoolId = await getSchoolId(db, orgId)

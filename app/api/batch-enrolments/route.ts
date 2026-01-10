@@ -2,6 +2,7 @@ import '@/lib/fetchWithTimeout'
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import { getDb, sql } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ async function ensureSchema() {
 }
 
 export async function GET(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   const db = getDb()
   const { searchParams } = new URL(req.url)
   const batchId = searchParams.get('batchId')
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   try {
     const body = await req.json()
     const { student_id, batch_id } = body || {}
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

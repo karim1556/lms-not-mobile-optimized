@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ async function getSchoolId(db:any, orgId:string) {
 }
 
 export async function GET(req: NextRequest) {
-  const db = getDb(); await ensureSchema(db)
+  const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { searchParams } = new URL(req.url)
   const batchId = searchParams.get('batchId')
   const trainerId = searchParams.get('trainerId')
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const db = getDb(); await ensureSchema(db)
+  const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { orgId, userId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'Organization not selected' }, { status: 401 })
   const schoolId = await getSchoolId(db, orgId)
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const db = getDb(); await ensureSchema(db)
+  const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'Organization not selected' }, { status: 401 })
   const schoolId = await getSchoolId(db, orgId)
@@ -97,7 +98,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const db = getDb(); await ensureSchema(db)
+  const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'Organization not selected' }, { status: 401 })
   const schoolId = await getSchoolId(db, orgId)

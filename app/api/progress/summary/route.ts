@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { getDb, Database } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
   const db = getDb();
   try {
     step = 'ensureSchema'
-    await ensureSchema(db)
+    await runOnce('ensureSchema', () => ensureSchema(db))
   } catch (e:any) {
     console.error('summary.ensureSchema', e)
     return NextResponse.json({ error: e?.message || 'Schema init failed', step }, { status: 500 })

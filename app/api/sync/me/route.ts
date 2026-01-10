@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { getDb, sql } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,7 +93,7 @@ async function getOrCreateSchoolByOrg(orgId: string) {
 }
 
 export async function POST(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   const { userId, orgId, orgRole } = await auth()
   if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 

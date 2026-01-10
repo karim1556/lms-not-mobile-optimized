@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getDb, sql } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ async function ensureSchema() {
 }
 
 export async function GET(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   const { orgId } = await auth()
   if (!orgId) return NextResponse.json({ error: 'no active organization' }, { status: 404 })
 

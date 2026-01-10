@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 // Webhooks disabled: proceeding without svix dependency
 import { getDb, sql } from '@/lib/db'
+import { runOnce } from '@/lib/runtime-migrations'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,7 +99,7 @@ async function getOrCreateSchoolByOrg(orgId: string, name?: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  await ensureSchema()
+  await runOnce('ensureSchema', ensureSchema)
   // Disabled endpoint: using no-webhook sync flow
   return NextResponse.json({ ok: false, reason: 'webhook disabled; using /api/sync/me' }, { status: 410 })
 }

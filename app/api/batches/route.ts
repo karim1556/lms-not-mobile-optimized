@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import '@/lib/fetchWithTimeout';
 import { getDb, sql } from '@/lib/db';
+import { runOnce } from '@/lib/runtime-migrations'
 import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +44,7 @@ async function ensureSchema() {
 }
 
 export async function GET(req: NextRequest) {
-  await ensureSchema();
+  await runOnce('ensureSchema', ensureSchema)
   const db = getDb();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
@@ -103,7 +104,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  await ensureSchema();
+  await runOnce('ensureSchema', ensureSchema)
   try {
     const body = await req.json();
     const {
@@ -179,7 +180,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  await ensureSchema();
+  await runOnce('ensureSchema', ensureSchema)
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -269,7 +270,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  await ensureSchema();
+  await runOnce('ensureSchema', ensureSchema)
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
