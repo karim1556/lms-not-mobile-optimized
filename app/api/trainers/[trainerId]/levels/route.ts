@@ -49,10 +49,12 @@ async function ensureCoordinatorForSchool(schoolId: string) {
 }
 
 // GET /api/trainers/:trainerId/levels
-export async function GET(_req: NextRequest, { params }: { params: { trainerId: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ trainerId: string }> | { trainerId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyTrainerBelongsToOrg(params.trainerId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const trainerId = params.trainerId;
+  const check = await verifyTrainerBelongsToOrg(trainerId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const db = getDb();
   const rows = await db.all(
@@ -61,16 +63,18 @@ export async function GET(_req: NextRequest, { params }: { params: { trainerId: 
      JOIN levels l ON l.id = tla.level_id
      WHERE tla.trainer_id = $1 AND tla.active = TRUE
      ORDER BY l.level_order ASC, l.name ASC`,
-    [params.trainerId]
+    [trainerId]
   );
   return NextResponse.json(rows);
 }
 
 // POST /api/trainers/:trainerId/levels { level_id }
-export async function POST(req: NextRequest, { params }: { params: { trainerId: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ trainerId: string }> | { trainerId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyTrainerBelongsToOrg(params.trainerId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const trainerId = params.trainerId;
+  const check = await verifyTrainerBelongsToOrg(trainerId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const perm = await ensureCoordinatorForSchool(check.schoolId);
   if ('error' in perm) return NextResponse.json({ error: perm.error }, { status: perm.status });
@@ -84,13 +88,13 @@ export async function POST(req: NextRequest, { params }: { params: { trainerId: 
       const upd = await trx`
         UPDATE trainer_level_assignments
         SET active = TRUE, assigned_at = NOW()
-        WHERE trainer_id = ${params.trainerId} AND level_id = ${levelId}
+        WHERE trainer_id = ${trainerId} AND level_id = ${levelId}
         RETURNING id
       `;
       if (!upd?.[0]?.id) {
         await trx`
           INSERT INTO trainer_level_assignments (trainer_id, level_id, assigned_by, active)
-          VALUES (${params.trainerId}, ${levelId}, 'coordinator', TRUE)
+          VALUES (${trainerId}, ${levelId}, 'coordinator', TRUE)
         `;
       }
     });
@@ -102,10 +106,12 @@ export async function POST(req: NextRequest, { params }: { params: { trainerId: 
 }
 
 // DELETE /api/trainers/:trainerId/levels?level_id=123
-export async function DELETE(req: NextRequest, { params }: { params: { trainerId: string } }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ trainerId: string }> | { trainerId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyTrainerBelongsToOrg(params.trainerId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const trainerId = params.trainerId;
+  const check = await verifyTrainerBelongsToOrg(trainerId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const perm = await ensureCoordinatorForSchool(check.schoolId);
   if ('error' in perm) return NextResponse.json({ error: perm.error }, { status: perm.status });
@@ -117,7 +123,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { trainerId
   await sql`
     UPDATE trainer_level_assignments
     SET active = FALSE
-    WHERE trainer_id = ${params.trainerId} AND level_id = ${levelId}
+    WHERE trainer_id = ${trainerId} AND level_id = ${levelId}
   `;
   return NextResponse.json({ success: true });
 }

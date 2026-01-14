@@ -17,9 +17,10 @@ interface MultiStepFormProps {
   children: React.ReactNode[]
   onComplete?: (data: any) => void
   className?: string
+  onBeforeNext?: (currentStep: number) => boolean | Promise<boolean>
 }
 
-export function MultiStepForm({ steps, children, onComplete, className }: MultiStepFormProps) {
+export function MultiStepForm({ steps, children, onComplete, className, onBeforeNext }: MultiStepFormProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState({})
 
@@ -27,7 +28,15 @@ export function MultiStepForm({ steps, children, onComplete, className }: MultiS
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
+      // allow caller to veto advancing to next step
+      const proceed = onBeforeNext ? onBeforeNext(currentStep) : true
+      if (proceed instanceof Promise) {
+        proceed.then((ok) => {
+          if (ok) setCurrentStep(currentStep + 1)
+        })
+      } else {
+        if (proceed) setCurrentStep(currentStep + 1)
+      }
     }
   }
 

@@ -63,6 +63,66 @@ export default function CoordinatorAddBatchPage() {
     { id: "finish", title: "Finish", icon: CheckCircle },
   ]
 
+  const validateBeforeNext = async (currentStep: number) => {
+    // Validate Basic Info step
+    if (currentStep === 0) {
+      const trimmedName = (name || "").trim()
+      if (!trimmedName) {
+        toast({ title: "Batch name required", variant: "destructive" })
+        return false
+      }
+    }
+    // Validate Students step fields before moving to Finish
+    if (currentStep === 1) {
+      const maxStudentsNum = Number(maxStudents)
+      if (maxStudents && (Number.isNaN(maxStudentsNum) || maxStudentsNum < 1)) {
+        toast({ title: "Maximum students must be a positive number", variant: "destructive" })
+        return false
+      }
+      // require start and end dates
+      if (!startDate) {
+        toast({ title: "Start date is required", variant: "destructive" })
+        return false
+      }
+      if (!endDate) {
+        toast({ title: "End date is required", variant: "destructive" })
+        return false
+      }
+      if (isNaN(Date.parse(startDate))) {
+        toast({ title: "Start date is invalid", variant: "destructive" })
+        return false
+      }
+      if (isNaN(Date.parse(endDate))) {
+        toast({ title: "End date is invalid", variant: "destructive" })
+        return false
+      }
+      if (Date.parse(startDate) > Date.parse(endDate)) {
+        toast({ title: "Start date must be before end date", variant: "destructive" })
+        return false
+      }
+      const trimmedSchedule = (schedule || "").trim()
+      const trimmedDescription = (description || "").trim()
+      if (!trimmedSchedule) {
+        toast({ title: "Schedule is required", variant: "destructive" })
+        return false
+      }
+      if (trimmedSchedule.length > 200) {
+        toast({ title: "Schedule too long (max 200 chars)", variant: "destructive" })
+        return false
+      }
+      if (!trimmedDescription) {
+        toast({ title: "Description is required", variant: "destructive" })
+        return false
+      }
+      if (trimmedDescription.length > 1000) {
+        toast({ title: "Description too long (max 1000 chars)", variant: "destructive" })
+        return false
+      }
+    }
+
+    return true
+  }
+
   const stepContent = [
     // Basic Info Step
     <div key="basic" className="space-y-6">
@@ -114,7 +174,7 @@ export default function CoordinatorAddBatchPage() {
     // Students Step
     <div key="students" className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="maxStudents">Maximum Students</Label>
+        <Label htmlFor="maxStudents">Maximum Students<span className="text-red-500">*</span></Label>
         <Input id="maxStudents" type="number" min={1} placeholder="Enter maximum number of students" value={maxStudents} onChange={(e) => {
           const v = e.target.value
           setMaxStudents(v)
@@ -127,19 +187,19 @@ export default function CoordinatorAddBatchPage() {
         }} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="startDate">Start Date</Label>
+        <Label htmlFor="startDate">Start Date<span className="text-red-500">*</span></Label>
         <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="endDate">End Date</Label>
+        <Label htmlFor="endDate">End Date<span className="text-red-500">*</span></Label>
         <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="schedule">Schedule</Label>
+        <Label htmlFor="schedule">Schedule<span className="text-red-500">*</span></Label>
         <Input id="schedule" placeholder="Enter batch schedule (e.g., Mon-Fri 10:00-12:00)" value={schedule} onChange={(e) => setSchedule(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Description<span className="text-red-500">*</span></Label>
         <Input id="description" placeholder="Enter batch description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
       <div className="space-y-2">
@@ -186,23 +246,74 @@ export default function CoordinatorAddBatchPage() {
 
   const handleComplete = async () => {
     try {
-      if (!name) {
+      const trimmedName = (name || "").trim()
+      if (!trimmedName) {
         toast({ title: "Batch name required", variant: "destructive" })
         return
       }
+      const trimmedSchedule = (schedule || "").trim()
+      const trimmedDescription = (description || "").trim()
+
+      // Validate max students
+      const maxStudentsNum = Number(maxStudents)
+      if (maxStudents && (Number.isNaN(maxStudentsNum) || maxStudentsNum < 1)) {
+        toast({ title: "Maximum students must be a positive number", variant: "destructive" })
+        return
+      }
+
+      // Require start and end dates
+      if (!startDate) {
+        toast({ title: "Start date is required", variant: "destructive" })
+        return
+      }
+      if (!endDate) {
+        toast({ title: "End date is required", variant: "destructive" })
+        return
+      }
+      if (isNaN(Date.parse(startDate))) {
+        toast({ title: "Start date is invalid", variant: "destructive" })
+        return
+      }
+      if (isNaN(Date.parse(endDate))) {
+        toast({ title: "End date is invalid", variant: "destructive" })
+        return
+      }
+      if (Date.parse(startDate) > Date.parse(endDate)) {
+        toast({ title: "Start date must be before end date", variant: "destructive" })
+        return
+      }
+
+      // Validate schedule/description required & lengths
+      if (!trimmedSchedule) {
+        toast({ title: "Schedule is required", variant: "destructive" })
+        return
+      }
+      if (trimmedSchedule.length > 200) {
+        toast({ title: "Schedule too long (max 200 chars)", variant: "destructive" })
+        return
+      }
+      if (!trimmedDescription) {
+        toast({ title: "Description is required", variant: "destructive" })
+        return
+      }
+      if (trimmedDescription.length > 1000) {
+        toast({ title: "Description too long (max 1000 chars)", variant: "destructive" })
+        return
+      }
+
       const res = await fetch("/api/batches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
+          name: trimmedName,
           school_id: null,
           course_id: null,
           start_date: startDate || null,
           end_date: endDate || null,
           max_students: maxStudents || null,
           status,
-          schedule,
-          description,
+          schedule: trimmedSchedule || null,
+          description: trimmedDescription || null,
           trainerIds: Array.from(selectedTrainerIds),
           studentIds: Array.from(selectedStudentIds),
         }),
@@ -226,7 +337,7 @@ export default function CoordinatorAddBatchPage() {
     fallback={<p>Access denied</p>}
     >
     <RoleLayout title="Coordinator" subtitle="Create Batch" Sidebar={CoordinatorSidebar}>
-      <MultiStepForm steps={steps} onComplete={handleComplete}>
+      <MultiStepForm steps={steps} onComplete={handleComplete} onBeforeNext={validateBeforeNext}>
         {stepContent}
       </MultiStepForm>
     </RoleLayout>

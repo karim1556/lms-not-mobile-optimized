@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Header } from '@/components/ui/header'
 import { Footer } from '@/components/ui/footer'
+import { Toaster } from '@/components/ui/toaster'
 import ClientOnly from '@/components/ClientOnly'
 import { CartProvider } from '@/hooks/use-cart'
 import DisableContextMenu from '@/components/disable-context-menu'
@@ -34,6 +35,7 @@ export default function RootLayout({
             <Header />
             {children}
             <Footer />
+            <Toaster />
           </CartProvider>
         </ClientOnly>
       </body>

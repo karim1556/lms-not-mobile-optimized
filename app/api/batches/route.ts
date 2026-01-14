@@ -120,8 +120,42 @@ export async function POST(req: NextRequest) {
       studentIds = [],
     } = body || {};
 
-    if (!name) {
+    // Validate name: must be a non-empty string after trimming whitespace
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
+    }
+    // Validate max_students if provided
+    if (max_students !== undefined && max_students !== null && String(max_students).trim() !== '') {
+      const ms = Number(max_students)
+      if (!Number.isFinite(ms) || ms < 1) {
+        return NextResponse.json({ error: 'max_students must be a positive integer' }, { status: 400 })
+      }
+    }
+    // Require and validate dates
+    if (!start_date) return NextResponse.json({ error: 'start_date is required' }, { status: 400 })
+    if (!end_date) return NextResponse.json({ error: 'end_date is required' }, { status: 400 })
+    if (isNaN(Date.parse(start_date))) {
+      return NextResponse.json({ error: 'start_date is invalid' }, { status: 400 })
+    }
+    if (isNaN(Date.parse(end_date))) {
+      return NextResponse.json({ error: 'end_date is invalid' }, { status: 400 })
+    }
+    if (Date.parse(start_date) > Date.parse(end_date)) {
+      return NextResponse.json({ error: 'start_date must be before end_date' }, { status: 400 })
+    }
+
+    // Require schedule/description and validate lengths
+    if (typeof schedule !== 'string' || !schedule.trim()) {
+      return NextResponse.json({ error: 'schedule is required' }, { status: 400 })
+    }
+    if (typeof description !== 'string' || !description.trim()) {
+      return NextResponse.json({ error: 'description is required' }, { status: 400 })
+    }
+    if (schedule.trim().length > 200) {
+      return NextResponse.json({ error: 'schedule too long' }, { status: 400 })
+    }
+    if (description.trim().length > 1000) {
+      return NextResponse.json({ error: 'description too long' }, { status: 400 })
     }
 
     const { orgId } = await auth()
@@ -133,7 +167,17 @@ export async function POST(req: NextRequest) {
     const result = await sql.begin(async (trx) => {
       const inserted = await trx`
         INSERT INTO batches (name, school_id, course_id, start_date, end_date, max_students, status, schedule, description)
-        VALUES (${name}, ${derivedSchoolId}, ${course_id || null}, ${start_date || null}, ${end_date || null}, ${Number.isFinite(+max_students) ? +max_students : null}, ${status || 'pending'}, ${schedule || null}, ${description || null})
+        VALUES (
+          ${name.trim()},
+          ${derivedSchoolId},
+          ${course_id || null},
+          ${start_date || null},
+          ${end_date || null},
+          ${Number.isFinite(+max_students) ? +max_students : null},
+          ${status || 'pending'},
+          ${typeof schedule === 'string' && schedule.trim() ? schedule.trim() : null},
+          ${typeof description === 'string' && description.trim() ? description.trim() : null}
+        )
         RETURNING id
       `;
       const batchId = inserted[0]?.id as string;
@@ -216,7 +260,18 @@ export async function PATCH(req: NextRequest) {
         sets.push(`${field} = $${sets.length + 1}`);
         vals.push(value);
       }
-      if (name !== undefined) add('name', name || null);
+      if (name !== undefined) {
+        if (typeof name !== 'string' || !name.trim()) {
+          return NextResponse.json({ error: 'name is required' }, { status: 400 })
+        }
+        add('name', name.trim() || null);
+      }
+      if (schedule !== undefined) {
+        add('schedule', typeof schedule === 'string' ? (schedule.trim() || null) : null);
+      }
+      if (description !== undefined) {
+        add('description', typeof description === 'string' ? (description.trim() || null) : null);
+      }
       if (course_id !== undefined) add('course_id', course_id || null);
       if (start_date !== undefined) add('start_date', start_date || null);
       if (end_date !== undefined) add('end_date', end_date || null);

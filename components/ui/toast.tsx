@@ -17,7 +17,10 @@ export interface ToastProps {
 
 export type ToastActionElement = React.ReactNode
 
-export function Toast({ title, description, variant = "default", onClose, children }: ToastProps & { children?: React.ReactNode }) {
+export function Toast({ title, description, variant = "default", onClose, children, open }: ToastProps & { children?: React.ReactNode }) {
+  // If consumer sets `open` to false we hide immediately
+  if (open === false) return null
+
   React.useEffect(() => {
     const timer = setTimeout(() => {
       onClose?.()

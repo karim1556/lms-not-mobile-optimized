@@ -49,10 +49,12 @@ async function ensureCoordinatorForSchool(schoolId: string) {
 }
 
 // GET /api/batches/:batchId/levels
-export async function GET(_req: NextRequest, { params }: { params: { batchId: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ batchId: string }> | { batchId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyBatchBelongsToOrg(params.batchId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const batchId = params.batchId;
+  const check = await verifyBatchBelongsToOrg(batchId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const db = getDb();
   const rows = await db.all(
@@ -61,16 +63,18 @@ export async function GET(_req: NextRequest, { params }: { params: { batchId: st
      JOIN levels l ON l.id = bla.level_id
      WHERE bla.batch_id = $1 AND bla.active = TRUE
      ORDER BY l.level_order ASC, l.name ASC`,
-    [params.batchId]
+    [batchId]
   );
   return NextResponse.json(rows);
 }
 
 // POST /api/batches/:batchId/levels { level_id }
-export async function POST(req: NextRequest, { params }: { params: { batchId: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ batchId: string }> | { batchId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyBatchBelongsToOrg(params.batchId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const batchId = params.batchId;
+  const check = await verifyBatchBelongsToOrg(batchId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const perm = await ensureCoordinatorForSchool(check.schoolId);
   if ('error' in perm) return NextResponse.json({ error: perm.error }, { status: perm.status });
@@ -84,13 +88,13 @@ export async function POST(req: NextRequest, { params }: { params: { batchId: st
       const upd = await trx`
         UPDATE batch_level_assignments
         SET active = TRUE, assigned_at = NOW()
-        WHERE batch_id = ${params.batchId} AND level_id = ${levelId}
+        WHERE batch_id = ${batchId} AND level_id = ${levelId}
         RETURNING id
       `;
       if (!upd?.[0]?.id) {
         await trx`
           INSERT INTO batch_level_assignments (batch_id, level_id, assigned_by, active)
-          VALUES (${params.batchId}, ${levelId}, 'coordinator', TRUE)
+          VALUES (${batchId}, ${levelId}, 'coordinator', TRUE)
         `;
       }
     });
@@ -102,10 +106,12 @@ export async function POST(req: NextRequest, { params }: { params: { batchId: st
 }
 
 // DELETE /api/batches/:batchId/levels?level_id=123
-export async function DELETE(req: NextRequest, { params }: { params: { batchId: string } }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ batchId: string }> | { batchId: string } }) {
   await ensureLevelsSchema();
   await ensureAssignmentsSchema();
-  const check = await verifyBatchBelongsToOrg(params.batchId);
+  const params = (ctx.params && typeof (ctx.params as any).then === 'function') ? await ctx.params : ctx.params;
+  const batchId = params.batchId;
+  const check = await verifyBatchBelongsToOrg(batchId);
   if ('error' in check) return NextResponse.json({ error: check.error }, { status: check.status });
   const perm = await ensureCoordinatorForSchool(check.schoolId);
   if ('error' in perm) return NextResponse.json({ error: perm.error }, { status: perm.status });
@@ -117,7 +123,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { batchId: 
   await sql`
     UPDATE batch_level_assignments
     SET active = FALSE
-    WHERE batch_id = ${params.batchId} AND level_id = ${levelId}
+    WHERE batch_id = ${batchId} AND level_id = ${levelId}
   `;
   return NextResponse.json({ success: true });
 }
