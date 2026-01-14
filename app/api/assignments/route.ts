@@ -23,6 +23,16 @@ async function getSchoolId(db:any, orgId:string) {
   return row?.id || null
 }
 
+async function ensureCoordinatorForSchool(db:any, schoolId:string) {
+  const { userId, orgRole } = await auth()
+  if (!userId) return { error: 'Not authenticated', status: 401 } as const
+  const role = (orgRole || '').toLowerCase().replace(/^org:/,'').replace(/[^a-z]/g,'')
+  if (role === 'admin' || role === 'coordinator' || role === 'schoolcoordinator') return {} as const
+  const row = await db.get(`SELECT id FROM coordinators WHERE school_id = $1 AND clerk_user_id = $2`, [schoolId, userId]) as any
+  if (!row?.id) return { error: 'Only coordinators can create assignments', status: 403 } as const
+  return {} as const
+}
+
 export async function GET(req: NextRequest) {
   const db = getDb(); await runOnce('ensureSchema', () => ensureSchema(db))
   const { searchParams } = new URL(req.url)
@@ -55,9 +65,9 @@ export async function POST(req: NextRequest) {
   const schoolId = await getSchoolId(db, orgId)
   if (!schoolId) return NextResponse.json({ error: 'No school bound to this organization' }, { status: 403 })
   try {
-    // Only coordinators can create assignments
-    const coord = await db.get(`SELECT id FROM coordinators WHERE school_id = $1 AND clerk_user_id = $2`, [schoolId, userId]) as any
-    if (!coord?.id) return NextResponse.json({ error: 'Only coordinators can create assignments' }, { status: 403 })
+    // Only coordinators (or org admins/roles) can create assignments
+    const coordCheck = await ensureCoordinatorForSchool(db, schoolId)
+    if ('error' in coordCheck) return NextResponse.json({ error: coordCheck.error }, { status: coordCheck.status })
     const body = await req.json()
     const { batch_id, trainer_id, title, instructions, due_date } = body || {}
     if (!batch_id || !trainer_id) return NextResponse.json({ error: 'batch_id and trainer_id are required' }, { status: 400 })
