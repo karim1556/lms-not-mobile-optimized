@@ -65,13 +65,17 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (isCoordinatorRoute(req)) {
-    await auth.protect((has) => (
-      has({ role: 'coordinator' }) ||
-      has({ role: 'school_coordinator' }) ||
-      has({ role: 'schoolCoordinator' }) ||
-      has({ role: 'school-coordinator' }) ||
-      has({ role: 'schoolcoordinator' })
-    ))
+    try {
+      await auth.protect((has) => (
+        has({ role: 'coordinator' }) ||
+        has({ role: 'school_coordinator' }) ||
+        has({ role: 'schoolCoordinator' }) ||
+        has({ role: 'school-coordinator' }) ||
+        has({ role: 'schoolcoordinator' })
+      ))
+    } catch (err) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
   }
 
   if (isStudentRoute(req)) {
@@ -99,9 +103,13 @@ export default clerkMiddleware(async (auth, req) => {
 
   // For org-scoped sections, ensure an active organization is selected
   if (isCoordinatorRoute(req) || isTrainerRoute(req) || isStudentRoute(req) || isCampCoordinatorRoute(req)) {
-    const { orgId } = await auth()
-    if (!orgId) {
-      // No active organization
+    try {
+      const { orgId } = await auth()
+      if (!orgId) {
+        // No active organization
+        return NextResponse.redirect(new URL('/sign-in', req.url))
+      }
+    } catch (err) {
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
   }
