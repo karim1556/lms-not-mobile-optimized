@@ -80,6 +80,38 @@ export default function CoordinatorAddTrainerPage() {
     { id: "finish", title: "Finish", icon: CheckCircle },
   ]
 
+  // Validation function for each step
+  const validateStep = (stepIndex: number): boolean => {
+    switch (stepIndex) {
+      case 0: // Basic info
+        if (!firstName?.trim()) {
+          toast({ title: "First name is required", variant: "destructive" })
+          return false
+        }
+        if (!lastName?.trim()) {
+          toast({ title: "Last name is required", variant: "destructive" })
+          return false
+        }
+        if (!gender) {
+          toast({ title: "Gender is required", variant: "destructive" })
+          return false
+        }
+        if (!dob) {
+          toast({ title: "Date of birth is required", variant: "destructive" })
+          return false
+        }
+        return true
+      case 1: // Login credentials
+        if (!email?.trim()) {
+          toast({ title: "Email is required", variant: "destructive" })
+          return false
+        }
+        return true
+      default:
+        return true
+    }
+  }
+
   const handleComplete = async () => {
     try {
       // support multiple emails separated by commas
@@ -275,7 +307,7 @@ export default function CoordinatorAddTrainerPage() {
     fallback={<p>Access denied</p>}
     >
     <RoleLayout title="Coordinator" subtitle="Add Trainer" Sidebar={CoordinatorSidebar}>
-      <MultiStepForm steps={steps} onComplete={handleComplete}>
+      <MultiStepForm steps={steps} onComplete={handleComplete} onBeforeNext={validateStep}>
         {stepContent}
       </MultiStepForm>
     </RoleLayout>

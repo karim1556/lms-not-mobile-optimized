@@ -82,25 +82,61 @@ export default function TrainerDashboard() {
   // Identify current trainer record by email match
   const myTrainer = useMemo(() => {
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase()
-    if (!email) return null
-    return trainers.find((t:any) => (t.email || '').toLowerCase() === email) || null
+    if (!email) {
+      console.log('[Trainer Dashboard] No email found for user')
+      return null
+    }
+    const trainer = trainers.find((t:any) => (t.email || '').toLowerCase() === email) || null
+    console.log('[Trainer Dashboard] Looking for trainer with email:', email)
+    console.log('[Trainer Dashboard] Available trainers:', trainers.map(t => ({ id: t.id, email: t.email })))
+    console.log('[Trainer Dashboard] Found trainer:', trainer ? { id: trainer.id, email: trainer.email, name: `${trainer.first_name} ${trainer.last_name}` } : 'NOT FOUND')
+    return trainer
   }, [trainers, user?.primaryEmailAddress?.emailAddress])
 
   // Filter my batches by membership in batch_trainers
   const myTrainerId = myTrainer?.id as string | undefined
   const myBatchesList = useMemo(() => {
-    if (!myTrainerId) return [] as any[]
-    return batches.filter((b:any) => {
+    if (!myTrainerId) {
+      console.log('[Trainer Dashboard] No trainer ID found, cannot filter batches')
+      return [] as any[]
+    }
+    console.log('[Trainer Dashboard] Filtering batches for trainer ID:', myTrainerId)
+    console.log('[Trainer Dashboard] Total batches:', batches.length)
+    const filtered = batches.filter((b:any) => {
       const ids = b.trainer_ids ? String(b.trainer_ids).split(',').filter(Boolean) : []
-      return ids.includes(myTrainerId)
+      const isAssigned = ids.includes(myTrainerId)
+      if (isAssigned) {
+        console.log('[Trainer Dashboard] Batch assigned:', { name: b.name, id: b.id, trainer_ids: b.trainer_ids })
+      }
+      return isAssigned
     })
+    console.log('[Trainer Dashboard] My batches count:', filtered.length)
+    return filtered
+  }, [batches, myTrainerId])
+
+  // Compute students in my batches only
+  const myStudentsCount = useMemo(() => {
+    if (!myTrainerId) {
+      console.log('[Trainer Dashboard] No trainer ID, students count = 0')
+      return 0
+    }
+    const studentIds = new Set<string>()
+    for (const b of batches) {
+      const tids = b.trainer_ids ? String(b.trainer_ids).split(',').filter(Boolean) : []
+      if (tids.includes(myTrainerId)) {
+        const sids = b.student_ids ? String(b.student_ids).split(',').filter(Boolean) : []
+        sids.forEach(id => studentIds.add(id))
+      }
+    }
+    console.log('[Trainer Dashboard] Students in my batches:', studentIds.size)
+    return studentIds.size
   }, [batches, myTrainerId])
 
   const schoolDisplay = schoolName && schoolName !== 'Unnamed School' ? schoolName : (organization?.name || (schoolId ?? null))
 
   const stats = [
     { label: "My Batches", value: myBatchesList.length, icon: <Calendar className="h-8 w-8" /> },
-    { label: "Students", value: students.length, icon: <Users className="h-8 w-8" /> },
+    { label: "Students", value: myStudentsCount, icon: <Users className="h-8 w-8" /> },
     { label: "Courses", value: counts.courses, icon: <BookOpen className="h-8 w-8" /> },
     { label: "Lessons", value: counts.lessons, icon: <Video className="h-8 w-8" /> },
   ]
@@ -169,6 +205,23 @@ export default function TrainerDashboard() {
 
   return (
     <RoleLayout title="Aiskool LMS" subtitle="Trainer Dashboard" Sidebar={TrainerSidebar}>
+      {!myTrainer && !loading && (
+        <div className="p-6 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="font-semibold text-yellow-800 mb-2">Trainer Profile Not Found</h3>
+          <p className="text-sm text-yellow-700">
+            Your email ({user?.primaryEmailAddress?.emailAddress}) is not registered as a trainer in this school.
+            Please contact your administrator to set up your trainer account.
+          </p>
+        </div>
+      )}
+      {myTrainer && myBatchesList.length === 0 && !loading && (
+        <div className="p-6 mb-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-800 mb-2">No Batches Assigned</h3>
+          <p className="text-sm text-blue-700">
+            You don't have any batches assigned yet. Contact your coordinator to assign batches to you.
+          </p>
+        </div>
+      )}
       <StandardDashboard
         title="Dashboard"
         subtitle="Trainer Panel"

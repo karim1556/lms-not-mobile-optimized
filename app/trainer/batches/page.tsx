@@ -5,6 +5,8 @@ import { RoleLayout } from "@/components/layout/role-layout"
 import { TrainerSidebar } from "@/components/layout/trainer-sidebar"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { OrganizationSwitcher, useAuth, useOrganization, useUser } from "@clerk/nextjs"
+import { ChevronDown, ChevronUp, Users } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function TrainerBatchesPage() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth()
@@ -17,6 +19,8 @@ export default function TrainerBatchesPage() {
   const [schoolName, setSchoolName] = useState<string | null>(null)
   const [batches, setBatches] = useState<any[]>([])
   const [trainers, setTrainers] = useState<any[]>([])
+  const [students, setStudents] = useState<any[]>([])
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null)
 
   // Sync & load
   useEffect(() => {
@@ -37,16 +41,19 @@ export default function TrainerBatchesPage() {
         setSchoolId(sid)
         setSchoolName(sch?.name ?? null)
 
-        const [bRes, tRes] = await Promise.all([
+        const [bRes, tRes, sRes] = await Promise.all([
           fetch(`/api/batches?schoolId=${encodeURIComponent(sid)}`, { cache: 'no-store' }),
           fetch(`/api/trainers?schoolId=${encodeURIComponent(sid)}`, { cache: 'no-store' }),
+          fetch(`/api/students?schoolId=${encodeURIComponent(sid)}`, { cache: 'no-store' }),
         ])
         if (!bRes.ok) throw new Error('Failed to load batches')
         if (!tRes.ok) throw new Error('Failed to load trainers')
-        const [bjson, tjson] = await Promise.all([bRes.json(), tRes.json()])
+        if (!sRes.ok) throw new Error('Failed to load students')
+        const [bjson, tjson, sjson] = await Promise.all([bRes.json(), tRes.json(), sRes.json()])
         if (!active) return
         setBatches(Array.isArray(bjson) ? bjson : [])
         setTrainers(Array.isArray(tjson) ? tjson : [])
+        setStudents(Array.isArray(sjson) ? sjson : [])
       } catch (e:any) {
         if (!active) return
         setError(e?.message || 'Failed to load')
@@ -71,6 +78,16 @@ export default function TrainerBatchesPage() {
       return ids.includes(myTrainerId)
     })
   }, [batches, myTrainerId])
+
+  // Get students for a specific batch
+  const getStudentsForBatch = (batch: any) => {
+    const studentIds = batch.student_ids ? String(batch.student_ids).split(',').filter(Boolean) : []
+    return students.filter((s: any) => studentIds.includes(s.id))
+  }
+
+  const toggleBatchExpansion = (batchId: string) => {
+    setExpandedBatchId(expandedBatchId === batchId ? null : batchId)
+  }
 
   const schoolDisplay = schoolName && schoolName !== 'Unnamed School' ? schoolName : (organization?.name || (schoolId ?? null))
 
@@ -118,20 +135,76 @@ export default function TrainerBatchesPage() {
                     <th className="text-left py-3 px-4">Students</th>
                     <th className="text-left py-3 px-4">Trainers</th>
                     <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-left py-3 px-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {myBatches.length === 0 && (
-                    <tr><td className="py-3 px-4 text-sm text-muted-foreground" colSpan={4}>No batches assigned</td></tr>
+                    <tr><td className="py-3 px-4 text-sm text-muted-foreground" colSpan={5}>No batches assigned</td></tr>
                   )}
-                  {myBatches.map((b:any) => (
-                    <tr key={b.id} className="border-b">
-                      <td className="py-3 px-4 font-medium">{b.name}</td>
-                      <td className="py-3 px-4">{b.student_count || 0}</td>
-                      <td className="py-3 px-4">{b.trainer_count || 0}</td>
-                      <td className="py-3 px-4 capitalize">{b.status || 'pending'}</td>
-                    </tr>
-                  ))}
+                  {myBatches.map((b:any) => {
+                    const batchStudents = getStudentsForBatch(b)
+                    const isExpanded = expandedBatchId === b.id
+                    return (
+                      <>
+                        <tr key={b.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{b.name}</td>
+                          <td className="py-3 px-4">{b.student_count || 0}</td>
+                          <td className="py-3 px-4">{b.trainer_count || 0}</td>
+                          <td className="py-3 px-4 capitalize">{b.status || 'pending'}</td>
+                          <td className="py-3 px-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleBatchExpansion(b.id)}
+                              className="flex items-center gap-1"
+                            >
+                              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              {isExpanded ? 'Hide' : 'View'} Students
+                            </Button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={`${b.id}-students`} className="bg-gray-50">
+                            <td colSpan={5} className="py-4 px-4">
+                              <div className="ml-8">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Users className="h-5 w-5 text-gray-600" />
+                                  <h4 className="font-semibold text-gray-700">Students in {b.name}</h4>
+                                </div>
+                                {batchStudents.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">No students enrolled in this batch yet.</p>
+                                ) : (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full border rounded-lg">
+                                      <thead className="bg-white">
+                                        <tr className="border-b">
+                                          <th className="text-left py-2 px-3 text-sm font-medium">Name</th>
+                                          <th className="text-left py-2 px-3 text-sm font-medium">Email</th>
+                                          <th className="text-left py-2 px-3 text-sm font-medium">Phone</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="bg-white">
+                                        {batchStudents.map((student: any) => (
+                                          <tr key={student.id} className="border-b last:border-0">
+                                            <td className="py-2 px-3 text-sm">
+                                              {`${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unnamed'}
+                                            </td>
+                                            <td className="py-2 px-3 text-sm">{student.email || '-'}</td>
+                                            <td className="py-2 px-3 text-sm">{student.phone || '-'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -175,13 +175,6 @@ export default function CoordinatorDashboard() {
     { color: "bg-yellow-50 hover:bg-yellow-100 text-yellow-600", title: "Course completion milestone", description: "25 students completed JavaScript Fundamentals", time: "1 day ago" },
   ]
 
-  const quickActions = [
-    { label: "Approve Users" },
-    { label: "Create Batch" },
-    { label: "Assign Trainer" },
-    { label: "View Reports" },
-  ]
-
   // Wait for Clerk to load to avoid false negatives
   if (!authLoaded || !orgLoaded) {
     return (
@@ -241,7 +234,6 @@ export default function CoordinatorDashboard() {
         totalCourses={activeCourses + pendingCourses}
         activeCourses={activeCourses}
         pendingCourses={pendingCourses}
-        quickActions={quickActions}
         activities={activities}
       />
 

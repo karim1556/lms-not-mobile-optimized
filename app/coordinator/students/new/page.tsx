@@ -62,13 +62,6 @@ export default function CoordinatorAddStudentPage() {
           <Textarea id="biography" placeholder="Write something..." className="border-0 resize-none focus-visible:ring-0" rows={8} value={biography} onChange={(e) => setBiography(e.target.value)} />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="userImage">User image</Label>
-        <div className="flex items-center gap-4">
-          <Input id="userImage" placeholder="Choose user image" readOnly />
-          <Button variant="outline">Browse</Button>
-        </div>
-      </div>
     </div>,
 
     // Login Credentials Step
@@ -136,6 +129,44 @@ export default function CoordinatorAddStudentPage() {
     </div>,
   ]
 
+  // Validation function for each step
+  const validateStep = (stepIndex: number): boolean => {
+    switch (stepIndex) {
+      case 0: // Basic info
+        if (!firstName?.trim()) {
+          toast({ title: "First name is required", variant: "destructive" })
+          return false
+        }
+        if (!lastName?.trim()) {
+          toast({ title: "Last name is required", variant: "destructive" })
+          return false
+        }
+        return true
+      case 1: // Login credentials
+        if (!email?.trim()) {
+          toast({ title: "Email is required", variant: "destructive" })
+          return false
+        }
+        if (!invite) {
+          if (!password) {
+            toast({ title: "Password is required", variant: "destructive" })
+            return false
+          }
+          if (!confirmPassword) {
+            toast({ title: "Confirm password is required", variant: "destructive" })
+            return false
+          }
+          if (password !== confirmPassword) {
+            toast({ title: "Passwords do not match", variant: "destructive" })
+            return false
+          }
+        }
+        return true
+      default:
+        return true
+    }
+  }
+
   const handleComplete = async () => {
     try {
       if (!invite && password !== confirmPassword) {
@@ -178,7 +209,7 @@ export default function CoordinatorAddStudentPage() {
     fallback={<p>Access denied</p>}
     >
     <RoleLayout title="Coordinator" subtitle="Add Student" Sidebar={CoordinatorSidebar}>
-      <MultiStepForm steps={steps} onComplete={handleComplete}>
+      <MultiStepForm steps={steps} onComplete={handleComplete} onBeforeNext={validateStep}>
         {stepContent}
       </MultiStepForm>
     </RoleLayout>

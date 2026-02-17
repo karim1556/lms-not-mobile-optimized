@@ -26,72 +26,97 @@ import {
 import { getCurrentMockUser } from "@/lib/mock-auth"
 import { mockTrainers } from "@/lib/mock-data"
 
-const allNavigationItems = [
+const navigationSections = [
   {
-    title: "Dashboard",
-    href: "/trainer/dashboard",
-    icon: LayoutDashboard,
-    privilege: null, // always show
+    section: "Overview",
+    items: [
+      {
+        title: "Dashboard",
+        href: "/trainer/dashboard",
+        icon: LayoutDashboard,
+        privilege: null, // always show
+      },
+    ],
   },
   {
-    title: "Sessions",
-    href: "/trainer/sessions",
-    icon: Calendar,
-    privilege: null,
+    section: "Management",
+    items: [
+      {
+        title: "My Batches",
+        href: "/trainer/batches",
+        icon: Users,
+        privilege: null, // always show for trainers
+      },
+      {
+        title: "Students",
+        href: "/trainer/students",
+        icon: UserPlus,
+        privilege: null, // always show for trainers
+      },
+      {
+        title: "Sessions",
+        href: "/trainer/sessions",
+        icon: Calendar,
+        privilege: null,
+      },
+      {
+        title: "New Session",
+        href: "/trainer/sessions/new",
+        icon: Calendar,
+        privilege: null,
+      },
+    ],
   },
   {
-    title: "New Session",
-    href: "/trainer/sessions/new",
-    icon: Calendar,
-    privilege: null,
+    section: "Learning",
+    items: [
+      {
+        title: "My Levels",
+        href: "/trainer/levels",
+        icon: FolderTree,
+        privilege: null,
+      },
+      {
+        title: "Courses",
+        href: "/trainer/courses",
+        icon: BookOpen,
+        privilege: "manage_courses",
+      },
+    ],
   },
   {
-    title: "Courses",
-    href: "/trainer/courses",
-    icon: BookOpen,
-    privilege: "manage_courses",
+    section: "Assessment",
+    items: [
+      {
+        title: "Assignments",
+        href: "/trainer/assignments",
+        icon: ClipboardList,
+        privilege: null, // always show
+      },
+      {
+        title: "Grade",
+        href: "/trainer/grade",
+        icon: GraduationCap,
+        privilege: null,
+      },
+      {
+        title: "Reports",
+        href: "/trainer/reports",
+        icon: BarChart3,
+        privilege: null, // always show
+      },
+    ],
   },
   {
-    title: "My Levels",
-    href: "/trainer/levels",
-    icon: FolderTree,
-    privilege: null,
-  },
-  {
-    title: "Batches",
-    href: "/trainer/batches",
-    icon: Calendar,
-    privilege: "manage_batches",
-  },
-  {
-    title: "Assignments",
-    href: "/trainer/assignments",
-    icon: ClipboardList,
-    privilege: "approve_assignments",
-  },
-  {
-    title: "Grade",
-    href: "/trainer/grade",
-    icon: GraduationCap,
-    privilege: null,
-  },
-  {
-    title: "Students",
-    href: "/trainer/students",
-    icon: UserPlus,
-    privilege: "view_students",
-  },
-  {
-    title: "Reports",
-    href: "/trainer/reports",
-    icon: BarChart3,
-    privilege: "view_reports",
-  },
-  {
-    title: "Settings",
-    href: "/trainer/settings",
-    icon: Settings,
-    privilege: null, // always show
+    section: "Settings",
+    items: [
+      {
+        title: "Settings",
+        href: "/trainer/settings",
+        icon: Settings,
+        privilege: null, // always show
+      },
+    ],
   },
 ]
 
@@ -119,11 +144,6 @@ export function TrainerSidebar() {
     }
   }
 
-  // Filter navigation items based on privileges
-  const navigationItems = allNavigationItems.filter(
-    (item) => !item.privilege || privileges.includes(item.privilege)
-  )
-
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-full overflow-y-auto">
       <div className="p-6">
@@ -136,22 +156,37 @@ export function TrainerSidebar() {
             <p className="text-sm text-gray-500">Trainer Panel</p>
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Navigation</div>
-          {navigationItems.map((item) => (
-            <Link key={item.title} href={item.href!}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start font-normal",
-                  pathname === item.href && "bg-blue-50 text-blue-700",
-                )}
-              >
-                <item.icon className="h-4 w-4 mr-3" />
-                {item.title}
-              </Button>
-            </Link>
-          ))}
+        <div className="space-y-6">
+          {navigationSections.map((section) => {
+            // Filter items based on privileges
+            const visibleItems = section.items.filter(
+              (item) => !item.privilege || privileges.includes(item.privilege)
+            )
+            
+            if (visibleItems.length === 0) return null
+
+            return (
+              <div key={section.section} className="space-y-1">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">
+                  {section.section}
+                </div>
+                {visibleItems.map((item) => (
+                  <Link key={item.title} href={item.href!}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start font-normal",
+                        pathname === item.href && "bg-blue-50 text-blue-700",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 mr-3" />
+                      {item.title}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
