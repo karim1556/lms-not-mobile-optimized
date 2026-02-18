@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster'
 import ClientOnly from '@/components/ClientOnly'
 import { CartProvider } from '@/hooks/use-cart'
 import DisableContextMenu from '@/components/disable-context-menu'
+import PlausibleProvider from '@/components/PlausibleProvider'
 import {
   ClerkProvider,
 } from '@clerk/nextjs'
@@ -29,6 +30,7 @@ export default function RootLayout({
     <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
       <body>
+        <PlausibleProvider />
         <ClientOnly>
           <DisableContextMenu />
           <CartProvider>
