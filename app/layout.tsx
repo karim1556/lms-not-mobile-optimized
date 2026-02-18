@@ -29,6 +29,10 @@ export default function RootLayout({
   return (
     <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script async src="https://plausible.io/js/pa-PXp8nvST9Ykfh37ddX2qc.js"></script>
+        <script dangerouslySetInnerHTML={{ __html: "window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()" }} />
+      </head>
       <body>
         <PlausibleProvider />
         <ClientOnly>
